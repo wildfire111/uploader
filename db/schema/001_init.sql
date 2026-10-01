@@ -11,14 +11,15 @@ create table allowed_users (
 );
 
 create table events (
-  id         uuid primary key default gen_random_uuid(),
-  name       text not null, -- short event code, used in the deck title
-  full_name  text not null, -- used in the deck description
-  date       date not null,
-  attendance integer not null,
-  status     text not null default 'draft',
-  created_by text not null, -- creator's email; plain text so removing a user keeps their events
-  created_at timestamptz not null default now(),
+  id                 uuid primary key default gen_random_uuid(),
+  name               text not null, -- short event code, used in the deck title
+  full_name          text not null, -- used in the deck description
+  date               date not null,
+  attendance         integer not null,
+  status             text not null default 'draft',
+  created_by         text not null, -- creator's email; plain text so removing a user keeps their events
+  created_at         timestamptz not null default now(),
+  moxfield_folder_id text, -- the event's Moxfield deck folder, created on first publish
 
   check (status in ('draft', 'submitted', 'published')),
   check (attendance >= 1),
@@ -33,8 +34,8 @@ create table entries (
   player_name              text not null,
   deck_name                text not null,
   decklist_raw             text not null, -- stored exactly as pasted
-  moxfield_deck_id         text, -- set when published; locks the entry
-  moxfield_pending_deck_id text, -- created on moxfield but the cards failed; the retry reuses it
+  moxfield_deck_id         text, -- set when published; locks the entry. Moxfield's short internal id, not the public URL id
+  moxfield_pending_deck_id text, -- a partially-failed deck awaiting delete-then-recreate on retry
   publish_claimed_at       timestamptz, -- set while a publish is working on this entry
   created_at               timestamptz not null default now(), -- entry order within a shared range
 
