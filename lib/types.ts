@@ -9,6 +9,7 @@ export type Event = {
   status: EventStatus;
   createdBy: string;
   createdAt: string;
+  moxfieldFolderId: string | null;
 };
 
 export type Entry = {

@@ -3,7 +3,8 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { pool } from "@/lib/db";
 import { formatDeckDescription } from "@/lib/description";
-import { publishDeck } from "@/lib/moxfield";
+import { formatDeckFolderName } from "@/lib/folderName";
+import { getOrCreateFolderId, publishDeck } from "@/lib/moxfield";
 import {
   MoxfieldContentError,
   MoxfieldRateLimitedError,
@@ -11,7 +12,7 @@ import {
   MoxfieldUserAgentMissingError,
 } from "@/lib/moxfieldErrors";
 import { getEntryById } from "@/lib/queries/entries";
-import { getEventById } from "@/lib/queries/events";
+import { getEventById, setEventMoxfieldFolderId } from "@/lib/queries/events";
 import { formatDeckTitle } from "@/lib/title";
 
 // the claim expiry below has to stay longer than this
@@ -86,6 +87,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       deckName: entry.deckName,
       eventName: event.name,
     });
+    const folderId = await getOrCreateFolderId({
+      folderId: event.moxfieldFolderId,
+      folderName: formatDeckFolderName({ date: event.date, fullName: event.fullName }),
+      onFolderCreated: (folderId) => setEventMoxfieldFolderId(event.id, folderId),
+    });
     const moxfieldDeckId = await publishDeck({
       title,
       description: formatDeckDescription({
@@ -94,6 +100,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         attendance: event.attendance,
       }),
       decklist: entry.decklistRaw,
+      folderId,
       pendingDeckId: claim.rows[0].moxfield_pending_deck_id,
       onDeckCreated: async (deckId) => {
         await pool.query(`update entries set moxfield_pending_deck_id = $2 where id = $1`, [

@@ -1,0 +1,1494 @@
+openapi: 3.0.3
+info:
+  title: Moxfield API (Unofficial)
+  description: |
+    Unofficial documentation of the Moxfield REST API, reverse-engineered from
+    network traffic. Base URL is https://api2.moxfield.com.
+
+    **Note:** This is an undocumented, unofficial API. It may change without notice.
+    Moxfield does not provide public API access, documentation, or support.
+
+    ## Authentication
+
+    All requests require a Bearer JWT in the `Authorization` header:
+
+    ```
+    Authorization: Bearer <token>
+    ```
+
+    ### Getting a token
+    The login endpoint requires solving a CAPTCHA and cannot be automated. Instead:
+    1. Log in to moxfield.com in your browser
+    2. Open DevTools → Network → any request → Request Headers
+    3. Copy the value of the `Authorization` header (everything after `Bearer `)
+
+    Tokens expire with your browser session and must be re-extracted on each login.
+
+    ### Read-only access
+    If your use case only requires read access (fetching decks, searching cards etc.),
+    you can contact Moxfield to request a unique `User-Agent` string. This acts as a
+    static credential that bypasses Cloudflare's firewall without needing a per-user,
+    per-session bearer token. Moxfield provides this on a case-by-case basis with no
+    guarantees of support.
+
+    ## API Versions
+
+    The API uses two versions:
+    - **v3** — used for deck reads, deck creation, and card editions
+    - **v2** — used for deck updates, card mutations, deck search, and card search
+  version: "1.0.0"
+  contact:
+    name: Moxfield
+    url: https://moxfield.com
+
+servers:
+  - url: https://api2.moxfield.com
+    description: Moxfield API
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT required for all requests. Obtain from an authenticated browser session
+        via DevTools → Network → any request → Authorization header.
+        Cannot be obtained programmatically due to CAPTCHA on the login endpoint.
+
+  schemas:
+
+    ColorIdentity:
+      type: string
+      enum: [W, U, B, R, G
+]
+      description: Single-letter MTG color code
+
+    Visibility:
+      type: string
+      enum: [public, unlisted, private, deleted
+]
+
+    Finish:
+      type: string
+      enum: [nonFoil, foil, etched, glossy
+]
+
+    Rarity:
+      type: string
+      enum: [common, uncommon, rare, mythic, special, bonus
+]
+
+    SetType:
+      type: string
+      enum:
+        - alchemy
+        - archenemy
+        - arsenal
+        - box
+        - commander
+        - core
+        - draft_innovation
+        - duel_deck
+        - eternal
+        - expansion
+        - from_the_vault
+        - funny
+        - masterpiece
+        - masters
+        - memorabilia
+        - minigame
+        - planechase
+        - premium_deck
+        - promo
+        - spellbook
+        - starter
+        - token
+        - treasure_chest
+        - vanguard
+
+    BoardType:
+      type: string
+      enum:
+        - mainboard
+        - sideboard
+        - maybeboard
+        - commanders
+        - companions
+        - signatureSpells
+        - attractions
+        - contraptions
+        - planes
+        - schemes
+        - stickers
+        - tokens
+
+    Format:
+      type: string
+      description: MTG format identifier
+      example: highlanderAustralian
+
+    LegalityValue:
+      type: string
+      enum: [legal, not_legal, banned, restricted
+]
+
+    Legalities:
+      type: object
+      description: Map of format name to legality status
+      additionalProperties:
+        $ref: '#/components/schemas/LegalityValue'
+      example:
+        standard: not_legal
+        commander: legal
+        legacy: legal
+        vintage: legal
+
+    Prices:
+      type: object
+      description: Card prices across multiple vendors
+      properties:
+        usd: { type: number, nullable: true
+}
+        usd_foil: { type: number, nullable: true
+}
+        usd_etched: { type: number, nullable: true
+}
+        eur: { type: number, nullable: true
+}
+        eur_foil: { type: number, nullable: true
+}
+        tix: { type: number, nullable: true
+}
+        ck: { type: number, nullable: true, description: Card Kingdom
+}
+        ck_foil: { type: number, nullable: true
+}
+        ck_etched: { type: number, nullable: true
+}
+        ck_buy: { type: number, nullable: true
+}
+        ck_buy_foil: { type: number, nullable: true
+}
+        ck_buy_etched: { type: number, nullable: true
+}
+        ck_buy_qty: { type: integer, nullable: true
+}
+        ck_buy_foil_qty: { type: integer, nullable: true
+}
+        ck_buy_etched_qty: { type: integer, nullable: true
+}
+        csi: { type: number, nullable: true, description: CoolStuffInc
+}
+        csi_foil: { type: number, nullable: true
+}
+        csi_buy: { type: number, nullable: true
+}
+        csi_buy_foil: { type: number, nullable: true
+}
+        csi_buy_qty: { type: integer, nullable: true
+}
+        csi_buy_foil_qty: { type: integer, nullable: true
+}
+        ct: { type: number, nullable: true, description: CardTrader
+}
+        ct_foil: { type: number, nullable: true
+}
+        ct_etched: { type: number, nullable: true
+}
+        scg: { type: number, nullable: true, description: StarCityGames
+}
+        scg_foil: { type: number, nullable: true
+}
+        scg_etched: { type: number, nullable: true
+}
+        scg_buy: { type: number, nullable: true
+}
+        scg_foil_buy: { type: number, nullable: true
+}
+        scg_etched_buy: { type: number, nullable: true
+}
+        scg_qty: { type: integer, nullable: true
+}
+        scg_foil_qty: { type: integer, nullable: true
+}
+        scg_etched_qty: { type: integer, nullable: true
+}
+        mp: { type: number, nullable: true, description: Manapool
+}
+        mp_foil: { type: number, nullable: true
+}
+        mp_etched: { type: number, nullable: true
+}
+        mp_qty: { type: integer, nullable: true
+}
+        lastUpdatedAtUtc: { type: string, format: date-time
+}
+
+    CardFace:
+      type: object
+      properties:
+        id: { type: string
+}
+        name: { type: string
+}
+        image_seq: { type: integer
+}
+        mana_cost: { type: string, nullable: true
+}
+        type_line: { type: string
+}
+        oracle_text: { type: string, nullable: true
+}
+        colors:
+          type: array
+          items: { $ref: '#/components/schemas/ColorIdentity'
+}
+        color_indicator:
+          type: array
+          items: { $ref: '#/components/schemas/ColorIdentity'
+}
+        power: { type: string, nullable: true
+}
+        toughness: { type: string, nullable: true
+}
+        loyalty: { type: string, nullable: true
+}
+        defense: { type: string, nullable: true
+}
+        flavor_name: { type: string, nullable: true
+}
+        flavor_text: { type: string, nullable: true
+}
+
+    Card:
+      type: object
+      description: Full card data including Scryfall fields and Moxfield extensions
+      properties:
+        id: { type: string, description: Moxfield card ID
+}
+        uniqueCardId: { type: string
+}
+        scryfall_id: { type: string, format: uuid
+}
+        name: { type: string
+}
+        set: { type: string, description: Set code e.g. mh2
+}
+        set_name: { type: string
+}
+        set_type:
+          allOf:
+            - $ref: '#/components/schemas/SetType'
+          nullable: true
+        cn: { type: string, description: Collector number
+}
+        lang: { type: string
+}
+        layout: { type: string
+}
+        type_line: { type: string, nullable: true
+}
+        type: { type: string, nullable: true
+}
+        oracle_text: { type: string, nullable: true
+}
+        mana_cost: { type: string, nullable: true
+}
+        cmc: { type: number
+}
+        rarity: { $ref: '#/components/schemas/Rarity'
+}
+        colors:
+          type: array
+          items: { $ref: '#/components/schemas/ColorIdentity'
+}
+        color_identity:
+          type: array
+          items: { $ref: '#/components/schemas/ColorIdentity'
+}
+        color_indicator:
+          type: array
+          items: { $ref: '#/components/schemas/ColorIdentity'
+}
+        card_faces:
+          type: array
+          items: { $ref: '#/components/schemas/CardFace'
+}
+        legalities: { $ref: '#/components/schemas/Legalities'
+}
+        prices: { $ref: '#/components/schemas/Prices'
+}
+        power: { type: string, nullable: true
+}
+        toughness: { type: string, nullable: true
+}
+        loyalty: { type: string, nullable: true
+}
+        artist: { type: string, nullable: true
+}
+        released_at: { type: string, format: date, nullable: true
+}
+        reprint: { type: boolean
+}
+        reserved: { type: boolean
+}
+        digital: { type: boolean
+}
+        foil: { type: boolean
+}
+        nonfoil: { type: boolean
+}
+        etched: { type: boolean
+}
+        glossy: { type: boolean
+}
+        acorn: { type: boolean
+}
+        colorshifted: { type: boolean
+}
+        content_warning: { type: boolean
+}
+        isToken: { type: boolean
+}
+        isPauperCommander: { type: boolean
+}
+        isArenaLegal: { type: boolean
+}
+        has_arena_legal: { type: boolean
+}
+        has_multiple_editions: { type: boolean
+}
+        isCovered: { type: boolean
+}
+        latest: { type: boolean
+}
+        defaultFinish: { type: string
+}
+        image_seq: { type: integer
+}
+        edhrec_rank: { type: integer, nullable: true
+}
+        allRaritiesMask: { type: integer, nullable: true
+}
+        frame: { type: string, nullable: true
+}
+        frame_effects:
+          type: array
+          items: { type: string
+}
+          nullable: true
+        promo_types:
+          type: array
+          items: { type: string
+}
+        border_color: { type: string
+}
+        multiverse_ids:
+          type: array
+          items: { type: integer
+}
+          nullable: true
+        arena_id: { type: integer, nullable: true
+}
+        mtgo_id: { type: integer, nullable: true
+}
+        tcgplayer_id: { type: integer, nullable: true
+}
+        cardkingdom_id: { type: integer, nullable: true
+}
+        cardkingdom_foil_id: { type: integer, nullable: true
+}
+        cardkingdom_etched_id: { type: integer, nullable: true
+}
+        cardmarket_id: { type: integer, nullable: true
+}
+        starcitygames_sku: { type: string, nullable: true
+}
+        starcitygames_foil_sku: { type: string, nullable: true
+}
+        starcitygames_etched_sku: { type: string, nullable: true
+}
+        tcgPlayerUrl: { type: string, nullable: true
+}
+        cardKingdomUrl: { type: string, nullable: true
+}
+        cardKingdomFoilUrl: { type: string, nullable: true
+}
+        cardKingdomEtchedUrl: { type: string, nullable: true
+}
+        cardMarketUrl: { type: string, nullable: true
+}
+        cardHoarderUrl: { type: string, nullable: true
+}
+        cardTraderUrl: { type: string, nullable: true
+}
+        cardTraderFoilUrl: { type: string, nullable: true
+}
+        coolStuffIncUrl: { type: string, nullable: true
+}
+        coolStuffIncFoilUrl: { type: string, nullable: true
+}
+        starcitygames_url: { type: string, nullable: true
+}
+        starcitygames_foil_url: { type: string, nullable: true
+}
+        starcitygames_etched_url: { type: string, nullable: true
+}
+        manapool_url: { type: string, nullable: true
+}
+
+    Author:
+      type: object
+      properties:
+        userName: { type: string
+}
+        displayName: { type: string
+}
+        profileImageUrl: { type: string, nullable: true
+}
+        badges:
+          type: array
+          items: { type: string
+}
+
+    Folder:
+      type: object
+      description: |
+        Trimmed view of a DeckFolder as embedded on a deck (DeckSummary.folder,
+        DeckList.folder). Confirmed by creating a folder via POST /v1/deck-folders
+        and finding the same id/name on a deck moved into it — same underlying
+        resource as DeckFolder, just without the timestamp fields.
+
+        Nullable: a deck not in any folder has folder: null. Observed one case
+        (deck in the account's "Archive" folder) where the list endpoint
+        (GET /v3/decks) still showed a non-null folder but the full deck
+        endpoint (GET /v3/decks/all/{publicId}) returned folder: null for the
+        same deck — likely server-side staleness/caching rather than a schema
+        difference, but don't assume the two endpoints always agree.
+      properties:
+        id: { type: string
+}
+        name: { type: string
+}
+
+    DeckFolder:
+      type: object
+      description: |
+        A top-level deck folder, as returned by POST /v1/deck-folders. Same
+        resource as the nested Folder field on decks (confirmed: id/name match
+        exactly) — this shape just adds the creation/update timestamps that
+        the embedded Folder omits.
+      properties:
+        id: { type: string
+}
+        name: { type: string
+}
+        createdAtUtc: { type: string, format: date-time
+}
+        lastUpdatedAtUtc: { type: string, format: date-time
+}
+
+    ColorPercentages:
+      type: object
+      properties:
+        white: { type: number
+}
+        blue: { type: number
+}
+        black: { type: number
+}
+        red: { type: number
+}
+        green: { type: number
+}
+
+    DeckSummary:
+      type: object
+      description: Lightweight deck object returned in list/search responses
+      properties:
+        id: { type: string, description: Internal short deck ID
+}
+        publicId: { type: string, description: Public-facing deck ID used in URLs
+}
+        publicUrl: { type: string
+}
+        name: { type: string
+}
+        format: { $ref: '#/components/schemas/Format'
+}
+        visibility: { $ref: '#/components/schemas/Visibility'
+}
+        hasPrimer: { type: boolean
+}
+        areCommentsEnabled: { type: boolean
+}
+        authorsCanEdit: { type: boolean
+}
+        isShared: { type: boolean
+}
+        isLegal: { type: boolean
+}
+        likeCount: { type: integer
+}
+        viewCount: { type: integer
+}
+        commentCount: { type: integer
+}
+        sfwCommentCount: { type: integer
+}
+        bookmarkCount: { type: integer
+}
+        mainboardCount: { type: integer
+}
+        sideboardCount: { type: integer
+}
+        maybeboardCount: { type: integer
+}
+        isPinned: { type: boolean
+}
+        ignoreBrackets: { type: boolean
+}
+        bracket: { type: integer, nullable: true
+}
+        autoBracket: { type: integer, nullable: true
+}
+        mainCardId: { type: string, nullable: true
+}
+        mainCardIdIsCardFace: { type: boolean
+}
+        mainCardIdIsBackFace: { type: boolean
+}
+        createdByUser: { $ref: '#/components/schemas/Author'
+}
+        authors:
+          type: array
+          items: { $ref: '#/components/schemas/Author'
+}
+        hubNames:
+          type: array
+          items: { type: string
+}
+        folder:
+          allOf:
+            - $ref: '#/components/schemas/Folder'
+          nullable: true
+        colors:
+          type: array
+          items: { $ref: '#/components/schemas/ColorIdentity'
+}
+        colorIdentity:
+          type: array
+          items: { $ref: '#/components/schemas/ColorIdentity'
+}
+        colorPercentages: { $ref: '#/components/schemas/ColorPercentages'
+}
+        colorIdentityPercentages: { $ref: '#/components/schemas/ColorPercentages'
+}
+        createdAtUtc: { type: string, format: date-time
+}
+        lastUpdatedAtUtc: { type: string, format: date-time
+}
+
+    BoardCard:
+      type: object
+      description: A card entry within a deck board
+      properties:
+        boardType: { $ref: '#/components/schemas/BoardType'
+}
+        card: { $ref: '#/components/schemas/Card'
+}
+        quantity: { type: integer
+}
+        finish: { $ref: '#/components/schemas/Finish'
+}
+        isFoil: { type: boolean
+}
+        isAlter: { type: boolean
+}
+        isProxy: { type: boolean
+}
+        isCompanion: { type: boolean, nullable: true
+}
+        excludedFromColor: { type: boolean
+}
+        useCmcOverride: { type: boolean
+}
+        useManaCostOverride: { type: boolean
+}
+        useColorIdentityOverride: { type: boolean
+}
+        cmcOverride: { type: number, nullable: true
+}
+        manaCostOverride: { type: string, nullable: true
+}
+        colorIdentityOverride:
+          type: array
+          items: { $ref: '#/components/schemas/ColorIdentity'
+}
+          nullable: true
+
+    Board:
+      type: object
+      properties:
+        count: { type: integer
+}
+        cards:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/BoardCard'
+
+    DeckList:
+      type: object
+      description: Full deck object with all boards and card data
+      properties:
+        id: { type: string
+}
+        publicId: { type: string
+}
+        publicUrl: { type: string
+}
+        name: { type: string
+}
+        description: { type: string
+}
+        format: { $ref: '#/components/schemas/Format'
+}
+        visibility: { $ref: '#/components/schemas/Visibility'
+}
+        version: { type: integer
+}
+        exportId: { type: string, format: uuid
+}
+        likeCount: { type: integer
+}
+        viewCount: { type: integer
+}
+        commentCount: { type: integer
+}
+        sfwCommentCount: { type: integer
+}
+        bookmarkCount: { type: integer, nullable: true
+}
+        bracket: { type: integer, nullable: true
+}
+        autoBracket: { type: integer, nullable: true
+}
+        userBracket: { type: integer, nullable: true
+}
+        ignoreBrackets: { type: boolean
+}
+        areCommentsEnabled: { type: boolean
+}
+        allowPrimerClone: { type: boolean
+}
+        authorsCanEdit: { type: boolean
+}
+        isShared: { type: boolean
+}
+        isMature: { type: boolean, nullable: true
+}
+        enableMultiplePrintings: { type: boolean
+}
+        includeBasicLandsInPrice: { type: boolean
+}
+        includeCommandersInPrice: { type: boolean
+}
+        includeSignatureSpellsInPrice: { type: boolean
+}
+        mainCardIdIsBackFace: { type: boolean
+}
+        ownerUserId: { type: string
+}
+        authors:
+          type: array
+          items: { $ref: '#/components/schemas/Author'
+}
+        createdByUser: { $ref: '#/components/schemas/Author'
+}
+        requestedAuthors:
+          type: array
+          items: { $ref: '#/components/schemas/Author'
+}
+        boards:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/Board'
+        main:
+          allOf:
+            - $ref: '#/components/schemas/Card'
+          nullable: true
+        tokens:
+          type: array
+          items: { $ref: '#/components/schemas/Card'
+}
+        colorIdentity:
+          type: array
+          items: { $ref: '#/components/schemas/ColorIdentity'
+}
+        colors:
+          type: array
+          items: { $ref: '#/components/schemas/ColorIdentity'
+}
+        colorPercentages: { $ref: '#/components/schemas/ColorPercentages'
+}
+        colorIdentityPercentages: { $ref: '#/components/schemas/ColorPercentages'
+}
+        hubs:
+          type: array
+          items:
+            type: object
+            properties:
+              name: { type: string
+}
+              description: { type: string
+}
+        folder:
+          allOf:
+            - $ref: '#/components/schemas/Folder'
+          nullable: true
+        createdAtUtc: { type: string, format: date-time
+}
+        lastUpdatedAtUtc: { type: string, format: date-time
+}
+
+    AddCardResponse:
+      type: object
+      properties:
+        card: { $ref: '#/components/schemas/BoardCard'
+}
+        tags:
+          type: array
+          items: { type: object
+}
+        tokens:
+          type: array
+          items: { $ref: '#/components/schemas/Card'
+}
+        tokenMappings:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/Card'
+        cardsToTokens:
+          type: object
+          additionalProperties:
+            type: array
+            items: { type: string
+}
+        tokensToCards:
+          type: object
+          additionalProperties:
+            type: array
+            items: { type: string
+}
+        collection:
+          type: array
+          items: { type: object
+}
+        preferredPrinting:
+          type: object
+        autoBracket: { type: integer
+}
+
+    CreateDeckResponse:
+      type: object
+      description: |
+        Confirmed: isSuccessful stays true even when importText has lines that
+        fail to import (bad card name, etc.) — it only reflects whether the
+        deck object itself was created. Check errors.length instead to detect
+        a partially-failed import; the failing lines are simply dropped from
+        the board they'd have landed on.
+      properties:
+        isSuccessful: { type: boolean
+}
+        totalImportedCount: { type: integer
+}
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              lineNumber: { type: integer
+}
+              errorMessage: { type: string
+}
+              originalText: { type: string
+}
+        publicId: { type: string
+}
+        boardSummary:
+          type: object
+          properties:
+            boardCounts:
+              type: object
+              properties:
+                mainboard: { type: integer
+}
+                sideboard: { type: integer
+}
+                maybeboard: { type: integer
+}
+                companions: { type: integer
+}
+                attractions: { type: integer
+}
+                stickers: { type: integer
+}
+                contraptions: { type: integer
+}
+                planes: { type: integer
+}
+                schemes: { type: integer
+}
+                tokens: { type: integer
+}
+        deck:
+          type: object
+          description: |
+            The full created deck object (same shape as DeckList). Notably
+            includes `id`, Moxfield's short internal id — distinct from the
+            top-level `publicId` above, and the id DELETE /v1/decks/{deckId}
+            and PUT /v2/decks/{deckId} actually expect.
+          properties:
+            id: { type: string
+}
+            publicId: { type: string
+}
+
+    UpdateDeckResponse:
+      type: object
+      properties:
+        exportId: { type: string, format: uuid
+}
+        mediaLinks:
+          type: array
+          items: { type: object
+}
+        bracket: { type: integer
+}
+        autoBracket: { type: integer
+}
+        ignoreBrackets: { type: boolean
+}
+
+    CardSearchResponse:
+      type: object
+      properties:
+        hasMore: { type: boolean
+}
+        totalCards: { type: integer
+}
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/Card'
+}
+        ownedCards:
+          type: object
+          additionalProperties:
+            type: integer
+          description: Map of cardId to owned quantity
+
+    DeckSearchResponse:
+      type: object
+      properties:
+        pinned:
+          type: array
+          items: { $ref: '#/components/schemas/DeckSummary'
+}
+        pageNumber: { type: integer
+}
+        pageSize: { type: integer
+}
+        totalResults: { type: integer
+}
+        totalPages: { type: integer
+}
+        data:
+          type: array
+          items:
+            allOf:
+              - $ref: '#/components/schemas/DeckSummary'
+              - type: object
+                properties:
+                  matchTypes:
+                    type: array
+                    items: { type: string
+}
+                  matchedCards:
+                    type: array
+                    items: { type: object
+}
+
+paths:
+
+  # ─────────────────────────────────────────
+  # DECKS — v3
+  # ─────────────────────────────────────────
+
+  /v3/decks:
+    get:
+      summary: List authenticated user's decks
+      operationId: listDecks
+      tags: [Decks
+]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of deck summaries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  decks:
+                    type: array
+                    items: { $ref: '#/components/schemas/DeckSummary'
+}
+                  pinnedDeckIds:
+                    type: array
+                    items: { type: string
+}
+
+    post:
+      summary: Create a new deck
+      operationId: createDeck
+      tags: [Decks
+]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, format, visibility
+]
+              properties:
+                name: { type: string
+}
+                format: { $ref: '#/components/schemas/Format'
+}
+                visibility: { $ref: '#/components/schemas/Visibility'
+}
+                playStyle: { type: string, example: paperDollars
+}
+                pricingProvider: { type: string, example: cardkingdom
+}
+                usePrefPrintings: { type: boolean
+}
+                importText:
+                  type: string
+                  description: |
+                    Confirmed working: a full decklist as pasted text, parsed into
+                    mainboard AND sideboard automatically (e.g. a blank line followed
+                    by a "Sideboard:" header). This is the recommended way to set a
+                    deck's initial contents — it replaces the older two-call
+                    create-then-bulk-edit pattern and needs no decklist parsing on
+                    the client.
+                deckFolderId:
+                  type: string
+                  description: |
+                    Confirmed working, though undocumented by Moxfield and easy to
+                    get wrong: assigns the new deck to an existing DeckFolder at
+                    creation time (see DeckFolder / POST /v1/deck-folders). The
+                    obvious guess, `folderId`, is silently ignored — it must be
+                    `deckFolderId`.
+      responses:
+        '200':
+          description: Deck created successfully
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CreateDeckResponse'
+}
+
+  /v3/decks/all/{publicId}:
+    get:
+      summary: Get full deck by public ID
+      operationId: getDeck
+      tags: [Decks
+]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: publicId
+          in: path
+          required: true
+          description: The public deck ID (from publicUrl or publicId field). Also accepts full moxfield.com deck URLs.
+          schema: { type: string
+}
+          example: oEWXWHM5eEGMmopExLWRCA
+      responses:
+        '200':
+          description: Full deck with all boards and card data
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DeckList'
+}
+        '404':
+          description: Deck not found
+
+  # ─────────────────────────────────────────
+  # DECKS — v2
+  # ─────────────────────────────────────────
+
+  /v2/decks/search:
+    get:
+      summary: Search and filter decks
+      operationId: searchDecks
+      tags: [Decks
+]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: pageNumber
+          in: query
+          schema: { type: integer, default: 1
+}
+        - name: pageSize
+          in: query
+          schema: { type: integer, default: 12
+}
+        - name: sortType
+          in: query
+          schema:
+            type: string
+            enum: [updated, name, viewCount, likeCount
+]
+            default: updated
+        - name: sortDirection
+          in: query
+          schema:
+            type: string
+            enum: [ascending, descending
+]
+            default: descending
+        - name: authorUserNames
+          in: query
+          description: Filter by username
+          schema: { type: string
+}
+        - name: fmt
+          in: query
+          description: Filter by format
+          schema: { $ref: '#/components/schemas/Format'
+}
+        - name: deckName
+          in: query
+          description: Search by deck name
+          schema: { type: string
+}
+        - name: cardId
+          in: query
+          description: Filter decks containing a specific card (Moxfield card ID)
+          schema: { type: string
+}
+        - name: companionCardId
+          in: query
+          description: Filter decks with a specific companion card
+          schema: { type: string
+}
+        - name: board
+          in: query
+          description: Which board to search cards in
+          schema: { $ref: '#/components/schemas/BoardType'
+}
+        - name: includePinned
+          in: query
+          schema: { type: boolean
+}
+        - name: showIllegal
+          in: query
+          schema: { type: boolean
+}
+      responses:
+        '200':
+          description: Paginated deck search results
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DeckSearchResponse'
+}
+
+  /v2/decks/{deckId}:
+    put:
+      summary: Update deck settings
+      operationId: updateDeck
+      tags: [Decks
+]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: deckId
+          in: path
+          required: true
+          description: Internal short deck ID
+          schema: { type: string
+}
+          example: 05A763
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string
+}
+                format: { $ref: '#/components/schemas/Format'
+}
+                description: { type: string
+}
+                visibility: { $ref: '#/components/schemas/Visibility'
+}
+                areCommentsEnabled: { type: boolean
+}
+                allowPrimerClone: { type: boolean
+}
+                ignoreBrackets: { type: boolean
+}
+                clearCommanders: { type: boolean
+}
+                mainCardId: { type: string, nullable: true
+}
+                mainCardIdIsBackFace: { type: boolean
+}
+                hubs:
+                  type: array
+                  items: { type: string
+}
+      responses:
+        '200':
+          description: Deck updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UpdateDeckResponse'
+}
+
+  # ─────────────────────────────────────────
+  # DECK FOLDERS — v1
+  # ─────────────────────────────────────────
+
+  /v1/deck-folders:
+    post:
+      summary: Create a new deck folder
+      operationId: createDeckFolder
+      tags: [Decks
+]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name
+]
+              properties:
+                name: { type: string
+}
+      responses:
+        '200':
+          description: Deck folder created successfully
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DeckFolder'
+}
+
+  # ─────────────────────────────────────────
+  # DECKS — v1 (delete)
+  # ─────────────────────────────────────────
+
+  /v1/decks/{deckId}:
+    delete:
+      summary: Delete a deck
+      operationId: deleteDeck
+      tags: [Decks
+]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: deckId
+          in: path
+          required: true
+          description: |
+            Moxfield's short internal deck id (the `deck.id` field on a create
+            response, or `id` on a full deck from GET /v3/decks/all/{publicId}) —
+            NOT the long publicId used in deck URLs.
+          schema: { type: string
+}
+          example: BBbx0M
+      responses:
+        '200':
+          description: Deck deleted
+        '204':
+          description: Deck deleted (no content)
+
+  # ─────────────────────────────────────────
+  # ADD CARDS — v2
+  # ─────────────────────────────────────────
+
+  /v2/decks/{deckId}/cards/{boardType}:
+    post:
+      summary: Add a card to a maindeck or sideboard
+      operationId: addCard
+      tags: [Cards
+]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: deckId
+          in: path
+          required: true
+          description: Internal short deck ID
+          schema: { type: string
+}
+          example: 05A763
+        - name: boardType
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/BoardType'
+}
+          example: mainboard
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [cardId, quantity
+]
+              properties:
+                cardId:
+                  type: string
+                  description: Moxfield card ID
+                quantity:
+                  type: integer
+                  minimum: 1
+                usePrefPrinting:
+                  type: boolean
+                  description: Use the user's preferred printing for this card
+      responses:
+        '200':
+          description: Card added, returns card details and updated token mappings
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AddCardResponse'
+}
+
+  /v2/decks/{deckId}/cards/{boardType}/{cardId}:
+    put:
+      summary: Update a card on a board
+      operationId: updateCard
+      tags: [Cards
+]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: deckId
+          in: path
+          required: true
+          schema: { type: string
+}
+          example: 05A763
+        - name: boardType
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/BoardType'
+}
+          example: mainboard
+        - name: cardId
+          in: path
+          required: true
+          description: Moxfield card ID
+          schema: { type: string
+}
+          example: Yn2ry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                quantity: { type: integer, minimum: 1
+}
+                finish: { $ref: '#/components/schemas/Finish'
+}
+                isFoil: { type: boolean
+}
+                isAlter: { type: boolean
+}
+                isProxy: { type: boolean
+}
+                useCmcOverride: { type: boolean
+}
+                useManaCostOverride: { type: boolean
+}
+                useColorIdentityOverride: { type: boolean
+}
+                cmcOverride: { type: number, nullable: true
+}
+                manaCostOverride: { type: string, nullable: true
+}
+                colorIdentityOverride:
+                  type: array
+                  items: { $ref: '#/components/schemas/ColorIdentity'
+}
+                  nullable: true
+      responses:
+        '200':
+          description: Card updated, returns updated token/bracket info
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AddCardResponse'
+}
+
+    delete:
+      summary: Remove a card from a board
+      operationId: deleteCard
+      tags: [Cards
+]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: deckId
+          in: path
+          required: true
+          schema: { type: string
+}
+          example: 05A763
+        - name: boardType
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/BoardType'
+}
+          example: mainboard
+        - name: cardId
+          in: path
+          required: true
+          description: Moxfield card ID
+          schema: { type: string
+}
+          example: EP9rn
+      responses:
+        '200':
+          description: Card removed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  autoBracket: { type: integer
+}
+
+  # ─────────────────────────────────────────
+  # USERS — v2
+  # ─────────────────────────────────────────
+
+  /v2/users/{username}/decks:
+    get:
+      summary: Get a user's public decks
+      operationId: getUserDecks
+      tags: [Users
+]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema: { type: string
+}
+          example: 7PointEventResults
+        - name: pageSize
+          in: query
+          schema: { type: integer, default: 100
+}
+        - name: pageNumber
+          in: query
+          schema: { type: integer, default: 1
+}
+      responses:
+        '200':
+          description: Paginated list of the user's public decks
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DeckSearchResponse'
+}
+
+  # ─────────────────────────────────────────
+  # CARD SEARCH & EDITIONS — v2/v3
+  # ─────────────────────────────────────────
+
+  /v2/cards/search/user:
+    get:
+      summary: Search cards
+      operationId: searchCards
+      tags: [Cards
+]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: Search query string. Supports modifiers like prefer:oldest, prefer:newest.
+          schema: { type: string
+}
+          example: dark ritual
+        - name: page
+          in: query
+          schema: { type: integer, default: 1
+}
+      responses:
+        '200':
+          description: Card search results
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CardSearchResponse'
+}
+
+  /v3/cards/editions/{uniqueCardId}:
+    get:
+      summary: Get card editions and printing data
+      operationId: getCardEditions
+      tags: [Cards
+]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: uniqueCardId
+          in: path
+          required: true
+          description: The uniqueCardId field from a card object
+          schema: { type: string
+}
+          example: LG24x
+      responses:
+        '200':
+          description: Card edition data for the specified printing
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  finish: { $ref: '#/components/schemas/Finish'
+}
+                  isFoil: { type: boolean
+}
+                  isAlter: { type: boolean
+}
+                  isProxy: { type: boolean
+}
+                  card: { $ref: '#/components/schemas/Card'
+}
+
+tags:
+  - name: Users
+    description: User profile and deck listing
+  - name: Decks
+    description: Deck management — list, get, create, update, search
+  - name: Cards
+    description: Card operations — search, editions, add/update/remove from boards

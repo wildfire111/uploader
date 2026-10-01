@@ -25,6 +25,7 @@ function makeEvent(overrides: Partial<Event> = {}): Event {
     status: "draft",
     createdBy: creator.email,
     createdAt: "2026-09-01T00:00:00Z",
+    moxfieldFolderId: null,
     ...overrides,
   };
 }

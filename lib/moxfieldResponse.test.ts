@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   isDeadRefreshTokenResponse,
-  parseBulkEditResponse,
-  parseCreateDeckResponse,
+  parseCreateFolderResponse,
+  parseDeckImportResponse,
   parseRefreshResponse,
 } from "./moxfieldResponse";
 
@@ -23,62 +23,71 @@ describe("isDeadRefreshTokenResponse", () => {
   });
 });
 
-describe("parseBulkEditResponse", () => {
-  it("accepts isSuccessful: true", () => {
-    expect(parseBulkEditResponse({ isSuccessful: true, errors: null })).toEqual({ ok: true });
+describe("parseDeckImportResponse", () => {
+  it("returns the new deck's short id when every line imports cleanly", () => {
+    expect(
+      parseDeckImportResponse({
+        isSuccessful: true,
+        errors: [],
+        publicId: "abc123",
+        deck: { id: "BBbx0M" },
+      })
+    ).toEqual({ ok: true, deckId: "BBbx0M" });
   });
 
-  it("fails on a 200-with-isSuccessful-false and names each bad line", () => {
-    const result = parseBulkEditResponse({
-      isSuccessful: false,
-      errors: {
-        boards: {
-          mainboard: [
-            { lineNumber: 3, errorMessage: "Could not find card 'Lightnin Bolt'", originalText: "1 Lightnin Bolt" },
-            { lineNumber: 7, errorMessage: "Could not find card 'Fooo'", originalText: "1 Fooo" },
-          ],
-        },
-      },
+  it("fails on a populated errors array even when isSuccessful is true", () => {
+    const result = parseDeckImportResponse({
+      isSuccessful: true,
+      errors: [
+        { lineNumber: 2, errorMessage: "Could not find card \"Fooo\".", originalText: "1 Fooo" },
+      ],
+      publicId: "abc123",
+      deck: { id: "BBbx0M" },
     });
     expect(result).toEqual({
       ok: false,
-      message:
-        "Moxfield could not read the decklist — Line 3: Could not find card 'Lightnin Bolt'; Line 7: Could not find card 'Fooo'",
+      deckId: "BBbx0M",
+      message: 'Moxfield could not read the decklist — Line 2: Could not find card "Fooo".',
     });
   });
 
   it("caps how many bad lines it lists", () => {
-    const mainboard = Array.from({ length: 8 }, (_, i) => ({ lineNumber: i + 1, errorMessage: "bad" }));
-    const result = parseBulkEditResponse({ isSuccessful: false, errors: { boards: { mainboard } } });
+    const errors = Array.from({ length: 8 }, (_, i) => ({ lineNumber: i + 1, errorMessage: "bad" }));
+    const result = parseDeckImportResponse({ errors, deck: { id: "BBbx0M" } });
     expect(result.ok === false && result.message).toContain("Line 5: bad (and 3 more)");
   });
 
-  it("still fails, with a generic message, when there are no line details", () => {
-    expect(parseBulkEditResponse({ isSuccessful: false })).toEqual({
+  it("fails with no deck id when the deck object is missing entirely", () => {
+    expect(parseDeckImportResponse({ isSuccessful: false })).toEqual({
       ok: false,
-      message: "Moxfield did not accept the decklist.",
+      deckId: null,
+      message: "Moxfield did not create the deck.",
     });
   });
 
   it("never treats an unexpected body as success", () => {
-    expect(parseBulkEditResponse(null).ok).toBe(false);
-    expect(parseBulkEditResponse({}).ok).toBe(false);
-    expect(parseBulkEditResponse("ok").ok).toBe(false);
+    expect(parseDeckImportResponse(null)).toEqual({
+      ok: false,
+      deckId: null,
+      message: "Moxfield did not create the deck.",
+    });
+    expect(parseDeckImportResponse({}).ok).toBe(false);
+    expect(parseDeckImportResponse("ok").ok).toBe(false);
   });
 });
 
-describe("parseCreateDeckResponse", () => {
-  it("returns the new deck's publicId", () => {
-    expect(parseCreateDeckResponse({ isSuccessful: true, errors: null, publicId: "abc123" })).toEqual({
+describe("parseCreateFolderResponse", () => {
+  it("returns the new folder's id", () => {
+    expect(parseCreateFolderResponse({ id: "gmADx", name: "asdasdas" })).toEqual({
       ok: true,
-      publicId: "abc123",
+      id: "gmADx",
     });
   });
 
-  it("fails without a publicId", () => {
-    expect(parseCreateDeckResponse({ isSuccessful: true }).ok).toBe(false);
-    expect(parseCreateDeckResponse({ isSuccessful: false, publicId: "abc" }).ok).toBe(false);
-    expect(parseCreateDeckResponse(null).ok).toBe(false);
+  it("fails without an id", () => {
+    expect(parseCreateFolderResponse({ name: "asdasdas" }).ok).toBe(false);
+    expect(parseCreateFolderResponse(null).ok).toBe(false);
+    expect(parseCreateFolderResponse("oops").ok).toBe(false);
   });
 });
 

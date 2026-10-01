@@ -285,14 +285,15 @@ allowed_users
   is_admin     boolean, default false
 
 events
-  id           uuid, primary key
-  name         text, required -- the short event code used in each deck's title, e.g. GGGongIQ26
-  full_name    text, required -- the full event name written in each deck's description, e.g. Adventurers Guild IQ
-  date         date, required
-  attendance   integer, required
-  status       text, required, default 'draft'
-  created_by   text, required -- creator's email; plain text so removing a user keeps their events
-  created_at   timestamptz, default now()
+  id                 uuid, primary key
+  name               text, required -- the short event code used in each deck's title, e.g. GGGongIQ26
+  full_name          text, required -- the full event name written in each deck's description, e.g. Adventurers Guild IQ
+  date               date, required
+  attendance         integer, required
+  status             text, required, default 'draft'
+  created_by         text, required -- creator's email; plain text so removing a user keeps their events
+  created_at         timestamptz, default now()
+  moxfield_folder_id text, nullable -- the event's Moxfield deck folder, created on first publish (see Deck folders)
 
 entries
   id                 uuid, primary key
@@ -302,9 +303,9 @@ entries
   player_name        text, required
   deck_name          text, required
   decklist_raw       text, required       -- stored exactly as pasted
-  moxfield_deck_id   text, nullable       -- set when published
+  moxfield_deck_id   text, nullable       -- set when published; Moxfield's short internal deck id, not the public URL id
   publish_claimed_at timestamptz, nullable -- set while a publish request is working on this entry (see Publishing)
-  moxfield_pending_deck_id text, nullable -- deck created on Moxfield but not yet filled with cards (see Writing the deck); does NOT lock the entry
+  moxfield_pending_deck_id text, nullable -- a partially-failed deck awaiting delete-then-recreate on retry (see Writing the deck); does NOT lock the entry
   created_at         timestamptz, default now() -- entry order within a shared range
 
 moxfield_connection
@@ -403,16 +404,16 @@ Access tokens are JWTs that last 900 seconds; read the expiry from the token's `
 
 ### Writing the deck to Moxfield
 
-Verified directly against the real API (on a test account) — this is what `publishDeck` does, and why:
+Verified directly against the real API — this is what `publishDeck` does, and why:
 
-1. **Create** — `POST /v3/decks` with `{ name: <title>, format: "highlanderAustralian", visibility: "public", description: <description> }` (see Deck description below). `highlanderAustralian` is Moxfield's ID for this format (`highlander` and `australianHighlander` are rejected). Decks are public because the results are analysed by scraping Moxfield. Returns `{ isSuccessful, errors, publicId }`; the `publicId` is the ID we store.
-2. **Fill** — `PUT /v3/decks/{publicId}/bulk-edit` with `decklist_raw` as the `mainboard` text and every other board `""`. This is only safe because the deck is brand new: **an empty string clears a board** (verified), and the request replaces the whole deck, so it must never be sent to a deck that has content in a board we blank.
-3. **Send names only.** Plain lines (`1 Lightning Bolt`) work, as do `1x` quantities, split cards (`1 Fire // Ice`) and stray whitespace. Heading lines (`Deck`, `Sideboard`) and blank lines are silently ignored — which also means a pasted sideboard is merged into the mainboard, not kept separate. Adding a set code that doesn't match the card (`(LEA)` on a card that isn't in that set) makes the line fail, so we don't add any.
-4. **Failure is a 200.** Moxfield answers HTTP 200 even when cards weren't found. Check `isSuccessful`; on `false`, `errors.boards.mainboard` is a list of `{ lineNumber, errorMessage, originalText }` (line numbers count lines of the text exactly as pasted). **A failed bulk-edit changes nothing** — the deck is left exactly as it was (verified with a misspelled card, a wrong set code and an all-unknown list) — so it is safe to retry into the same deck. Show the admin the offending lines ("Line 3: Could not find card 'Lightnin Bolt'") so the decklist can be fixed on the entry.
-5. **Pending deck.** As soon as step 1 succeeds, save the new `publicId` on the entry as `moxfield_pending_deck_id`. If step 2 then fails, the entry stays unpublished and unlocked (the admin can fix the decklist), and the next attempt skips step 1 and writes into that same deck — so a fixable typo never leaves a trail of empty public decks on the account. Only when step 2 succeeds is `moxfield_deck_id` set (locking the entry) and the pending ID cleared. There is no delete-deck endpoint, so an abandoned pending deck (for example the entry was deleted) has to be removed by hand on moxfield.com.
-6. **The title must be 2–100 characters** (Moxfield rejects anything else, on create and rename). The title format below can exceed that, so the app checks the finished title when an entry is saved and when event details are saved, and refuses with a message saying how many characters over it is — rather than truncating, so what's on Moxfield always matches what was entered.
+1. **Create and fill in one call** — `POST /v3/decks` with `{ name: <title>, format: "highlanderAustralian", visibility: "public", description: <description>, importText: <decklist_raw>, deckFolderId: <folder id, see Deck folders below> }`. `highlanderAustralian` is Moxfield's ID for this format (`highlander` and `australianHighlander` are rejected). Decks are public because the results are analysed by scraping Moxfield. `importText` parses the pasted decklist into mainboard **and** sideboard correctly (a blank line followed by a `Sideboard:` header splits them) — no client-side decklist parsing needed, and no second API call. `deckFolderId` assigns the deck to its event's folder at the same time (the obvious field name, `folderId`, is silently ignored — it must be `deckFolderId`).
+2. **Failure is still a 200, but `isSuccessful` doesn't tell you that.** Moxfield answers HTTP 200, with `isSuccessful: true`, even when some decklist lines fail to import — that flag only reflects whether the deck object itself was created. The real signal is the `errors` array: a flat list of `{ lineNumber, errorMessage, originalText }` (line numbers count lines of the text exactly as pasted). A failing line is simply dropped from whichever board it would have landed on; the rest of the decklist still imports. Show the admin the offending lines ("Line 3: Could not find card 'Lightnin Bolt'") so the decklist can be fixed on the entry.
+3. **Pending deck, delete-then-recreate retry.** As soon as step 1 returns, save the created deck's short internal id (`deck.id` in the response — distinct from the top-level `publicId`, and not the same format) on the entry as `moxfield_pending_deck_id`, if `errors` was non-empty. Moxfield does have a delete-deck endpoint (`DELETE /v1/decks/{deckId}`, keyed by that same short id — undocumented, confirmed from the browser), so a retry deletes that partially-failed deck first, then creates a fresh one the same way as step 1. This means a retry gets sideboard parsing too, same as the first attempt, and never leaves a trail of broken public decks — the delete is best-effort (its failure doesn't block the retry, so in the rare case it doesn't work the old deck is simply abandoned, same as any other orphaned deck). Only when a create attempt succeeds cleanly is `moxfield_deck_id` set (locking the entry, also storing the short id) and the pending id cleared.
+4. **The title must be 2–100 characters** (Moxfield rejects anything else, on create and rename). The title format below can exceed that, so the app checks the finished title when an entry is saved and when event details are saved, and refuses with a message saying how many characters over it is — rather than truncating, so what's on Moxfield always matches what was entered.
 
-**Deck description.** Every published deck carries a description built from its event: `{date as DD/MM/YY}, {full event name}, {attendance} players` — for example `27/09/26, Adventurers Guild IQ, 22 players` (`1 player` for an attendance of one). The full event name is the event's `full_name` — distinct from the short event code (`name`) used in the deck title. Verified against the real API: the create call accepts `description`, stores it exactly as sent, and it survives the decklist write, so it costs no extra request. The description is written when the deck is created, so a retry into a pending deck keeps the one it was created with; changing an event's date, name or attendance afterwards does not update decks that are already on Moxfield.
+**Deck folders.** Every event gets its own Moxfield deck folder, named `{date as YYYYMMDD} - {full event name}` (e.g. `20261001 - Adventurers Guild IQ`), holding every deck published from that event. The folder is created lazily — `POST /v1/deck-folders` (`{ name }`, returns `{ id, name, createdAtUtc, lastUpdatedAtUtc }`) — the first time an entry in that event is published, and its id is cached on `events.moxfield_folder_id` so every later entry in the same event reuses it instead of creating a new one. This relies on publishing already being strictly sequential (see Publish flow below) — nothing guards against two entries of the same event being published concurrently from two different browser tabs, which would create two folders.
+
+**Deck description.** Every published deck carries a description built from its event: `{date as DD/MM/YY}, {full event name}, {attendance} players` — for example `27/09/26, Adventurers Guild IQ, 22 players` (`1 player` for an attendance of one). The full event name is the event's `full_name` — distinct from the short event code (`name`) used in the deck title. Verified against the real API: the create call accepts `description`, stores it exactly as sent, and it survives the decklist write, so it costs no extra request. The description is written when the deck is created; a retry deletes and recreates the deck (see Writing the deck above), so it picks up whatever the event's current date/name/attendance are at retry time, not what they were on the failed attempt. Once an entry has successfully published (`moxfield_deck_id` set, locked), changing the event afterwards does not update that deck on Moxfield.
 
 **For whoever analyses the results (separate from this app):** Moxfield's deck search hides decks it considers illegal in the format unless `showIllegal=true` is passed. A published result can be flagged illegal (a wrong count, a points-cap breach), so a scraper that omits that parameter will silently miss some of them.
 
@@ -442,7 +443,7 @@ A double-click, a second tab or two admins at once could start two publish loops
   ```
 
   If no row comes back and the entry already has a `moxfield_deck_id`, the route returns that ID as normal. Otherwise another request has the entry, and the route returns an error, "This entry is already being published", without calling Moxfield. The browser stops its loop and shows that message. This covers second tabs and two admins, because the database only lets one request win.
-- On success, the route saves `moxfield_deck_id`, clears `moxfield_pending_deck_id`, and clears `publish_claimed_at`. On failure, it clears `publish_claimed_at` so a retry can claim it straight away, and keeps any `moxfield_pending_deck_id` so the retry writes into the same deck (see Writing the deck).
+- On success, the route saves `moxfield_deck_id`, clears `moxfield_pending_deck_id`, and clears `publish_claimed_at`. On failure, it clears `publish_claimed_at` so a retry can claim it straight away, and keeps any `moxfield_pending_deck_id` so the retry knows to delete that partially-failed deck before creating its replacement (see Writing the deck).
 - The 10-minute expiry covers a request that dies without cleaning up (e.g. a timeout). It is safe only because it is longer than the route's `maxDuration` of 5 minutes (below). If `maxDuration` is ever raised, raise the expiry to match.
 
 Set the per-entry publish route's `maxDuration` to a fixed `300` (5 minutes), so one slow Moxfield response doesn't time out the request. The 10-minute claim expiry above depends on this value.

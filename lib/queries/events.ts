@@ -11,6 +11,7 @@ type EventRow = {
   status: EventStatus;
   created_by: string;
   created_at: Date;
+  moxfield_folder_id: string | null;
 };
 
 function mapEventRow(row: EventRow): Event {
@@ -23,6 +24,7 @@ function mapEventRow(row: EventRow): Event {
     status: row.status,
     createdBy: row.created_by,
     createdAt: row.created_at.toISOString(),
+    moxfieldFolderId: row.moxfield_folder_id,
   };
 }
 
@@ -86,6 +88,10 @@ export async function setEventStatus(id: string, status: EventStatus): Promise<E
     [id, status]
   );
   return mapEventRow(result.rows[0]);
+}
+
+export async function setEventMoxfieldFolderId(id: string, folderId: string): Promise<void> {
+  await pool.query(`update events set moxfield_folder_id = $2 where id = $1`, [id, folderId]);
 }
 
 export async function deleteEvent(id: string): Promise<void> {

@@ -20,46 +20,49 @@ function describeLineError(error: LineError): string | null {
     : error.errorMessage;
 }
 
-// failures come back as a 200, so read isSuccessful
-export type BulkEditOutcome = { ok: true } | { ok: false; message: string };
+// isSuccessful stays true even when a decklist line fails to import — the
+// real signal is a populated, flat `errors` array (not nested under `boards`
+// like the old bulk-edit response)
+export type DeckImportOutcome =
+  | { ok: true; deckId: string }
+  | { ok: false; deckId: string | null; message: string };
 
-export function parseBulkEditResponse(body: unknown): BulkEditOutcome {
-  const response = body as {
-    isSuccessful?: unknown;
-    errors?: { boards?: Record<string, LineError[] | undefined> };
-  } | null;
+export function parseDeckImportResponse(body: unknown): DeckImportOutcome {
+  const response = body as { deck?: { id?: unknown }; errors?: LineError[] } | null;
+  const deckId = typeof response?.deck?.id === "string" && response.deck.id ? response.deck.id : null;
+  if (!deckId) {
+    return { ok: false, deckId: null, message: "Moxfield did not create the deck." };
+  }
 
-  if (response?.isSuccessful === true) {
-    return { ok: true };
+  const errors = Array.isArray(response?.errors) ? response.errors : [];
+  if (errors.length === 0) {
+    return { ok: true, deckId };
   }
 
   const lines: string[] = [];
-  for (const boardErrors of Object.values(response?.errors?.boards ?? {})) {
-    for (const error of Array.isArray(boardErrors) ? boardErrors : []) {
-      const line = describeLineError(error);
-      if (line) {
-        lines.push(line);
-      }
+  for (const error of errors) {
+    const line = describeLineError(error);
+    if (line) {
+      lines.push(line);
     }
   }
 
   if (lines.length === 0) {
-    return { ok: false, message: "Moxfield did not accept the decklist." };
+    return { ok: false, deckId, message: "Moxfield did not accept the full decklist." };
   }
   const shown = lines.slice(0, MAX_LINES_SHOWN).join("; ");
   const more = lines.length > MAX_LINES_SHOWN ? ` (and ${lines.length - MAX_LINES_SHOWN} more)` : "";
-  return { ok: false, message: `Moxfield could not read the decklist — ${shown}${more}` };
+  return { ok: false, deckId, message: `Moxfield could not read the decklist — ${shown}${more}` };
 }
 
-export type CreateDeckOutcome = { ok: true; publicId: string } | { ok: false; message: string };
+export type CreateFolderOutcome = { ok: true; id: string } | { ok: false; message: string };
 
-export function parseCreateDeckResponse(body: unknown): CreateDeckOutcome {
-  const response = body as { isSuccessful?: unknown; publicId?: unknown; errors?: unknown } | null;
-  if (response?.isSuccessful !== false && typeof response?.publicId === "string" && response.publicId) {
-    return { ok: true, publicId: response.publicId };
+export function parseCreateFolderResponse(body: unknown): CreateFolderOutcome {
+  const response = body as { id?: unknown } | null;
+  if (typeof response?.id === "string" && response.id) {
+    return { ok: true, id: response.id };
   }
-  const detail = response?.errors ? ` (${JSON.stringify(response.errors).slice(0, 200)})` : "";
-  return { ok: false, message: `Moxfield did not create the deck${detail}.` };
+  return { ok: false, message: "Moxfield did not create the folder." };
 }
 
 export type RefreshOutcome =
