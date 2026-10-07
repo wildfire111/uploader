@@ -1,6 +1,6 @@
 import "server-only";
 import { pool } from "../db";
-import type { Entry } from "../types";
+import type { Entry, EntryInput } from "../types";
 
 type EntryRow = {
   id: string;
@@ -48,14 +48,7 @@ export async function getEntryById(id: string): Promise<Entry | null> {
   return row ? mapEntryRow(row) : null;
 }
 
-export async function createEntry(input: {
-  eventId: string;
-  placingFrom: number;
-  placingTo: number | null;
-  playerName: string;
-  deckName: string;
-  decklistRaw: string;
-}): Promise<Entry> {
+export async function createEntry(input: EntryInput & { eventId: string }): Promise<Entry> {
   const result = await pool.query<EntryRow>(
     `insert into entries (event_id, placing_from, placing_to, player_name, deck_name, decklist_raw)
      values ($1, $2, $3, $4, $5, $6)
@@ -72,16 +65,7 @@ export async function createEntry(input: {
   return mapEntryRow(result.rows[0]);
 }
 
-export async function updateEntry(
-  id: string,
-  input: {
-    placingFrom: number;
-    placingTo: number | null;
-    playerName: string;
-    deckName: string;
-    decklistRaw: string;
-  }
-): Promise<Entry> {
+export async function updateEntry(id: string, input: EntryInput): Promise<Entry> {
   const result = await pool.query<EntryRow>(
     `update entries
      set placing_from = $2, placing_to = $3, player_name = $4, deck_name = $5, decklist_raw = $6
@@ -94,4 +78,44 @@ export async function updateEntry(
 
 export async function deleteEntry(id: string): Promise<void> {
   await pool.query(`delete from entries where id = $1`, [id]);
+}
+
+// A publish claim older than this is treated as abandoned. It must outlast the longest a publish
+// can run, which is the `maxDuration` of app/api/entries/[id]/publish/route.ts (300 seconds).
+export const PUBLISH_CLAIM_MINUTES = 10;
+
+// Claims the entry for publishing in one statement, so two publishes can't both reach Moxfield.
+// Returns null when it is already published or someone else holds a live claim.
+export async function claimEntryForPublish(
+  id: string
+): Promise<{ pendingDeckId: string | null } | null> {
+  const result = await pool.query<{ moxfield_pending_deck_id: string | null }>(
+    `update entries
+     set publish_claimed_at = now()
+     where id = $1
+       and moxfield_deck_id is null
+       and (publish_claimed_at is null or publish_claimed_at < now() - make_interval(mins => $2::int))
+     returning moxfield_pending_deck_id`,
+    [id, PUBLISH_CLAIM_MINUTES]
+  );
+  const row = result.rows[0];
+  return row ? { pendingDeckId: row.moxfield_pending_deck_id } : null;
+}
+
+// a deck Moxfield created but couldn't fill, kept so a retry can delete it first
+export async function setPendingDeckId(id: string, deckId: string): Promise<void> {
+  await pool.query(`update entries set moxfield_pending_deck_id = $2 where id = $1`, [id, deckId]);
+}
+
+export async function markEntryPublished(id: string, deckId: string): Promise<void> {
+  await pool.query(
+    `update entries
+     set moxfield_deck_id = $2, moxfield_pending_deck_id = null, publish_claimed_at = null
+     where id = $1`,
+    [id, deckId]
+  );
+}
+
+export async function releasePublishClaim(id: string): Promise<void> {
+  await pool.query(`update entries set publish_claimed_at = null where id = $1`, [id]);
 }

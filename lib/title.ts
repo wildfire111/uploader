@@ -1,6 +1,6 @@
 import { formatPlacing, type PlacingRange } from "./placing";
 
-export type DeckTitleInput = PlacingRange & {
+type DeckTitleInput = PlacingRange & {
   playerName: string;
   deckName: string;
   eventName: string;
@@ -13,8 +13,8 @@ export function formatDeckTitle(input: DeckTitleInput): string {
 }
 
 // moxfield only takes names of 2-100 characters
-export const MIN_TITLE_LENGTH = 2;
-export const MAX_TITLE_LENGTH = 100;
+const MIN_TITLE_LENGTH = 2;
+const MAX_TITLE_LENGTH = 100;
 
 export function checkTitleLength(title: string): string | null {
   if (title.length > MAX_TITLE_LENGTH) {

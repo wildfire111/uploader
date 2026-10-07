@@ -21,6 +21,9 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+// Every request to Moxfield goes through here, and each one waits `delayMs()` first, so calls made
+// one after another are at least a second apart. The wait is per request (nothing is shared between
+// requests or servers), which is enough because publishing is driven one entry at a time.
 export async function moxfieldFetch(url: string, init: RequestInit = {}): Promise<Response> {
   const userAgent = await getUserAgent();
 

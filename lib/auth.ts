@@ -2,12 +2,12 @@ import "server-only";
 import { betterAuth } from "better-auth";
 import { nextCookies } from "better-auth/next-js";
 import { magicLink } from "better-auth/plugins";
+import { headers } from "next/headers";
 import { pool } from "./db";
 import { sendEmail } from "./email";
 import { isLoginLinkAllowed, WINDOW_SECONDS } from "./loginThrottle";
 import { normaliseEmail } from "./normaliseEmail";
 import { getAllowedUser } from "./queries/allowedUsers";
-import { countRecentLoginLinks } from "./queries/loginThrottle";
 import type { AllowedUser } from "./types";
 
 // previews get a new url each deploy, so they use VERCEL_URL
@@ -31,10 +31,10 @@ export const auth = betterAuth({
 
         // callers aren't told when this throttles; if counting fails, send anyway
         try {
-          const counts = await countRecentLoginLinks(normalisedEmail, WINDOW_SECONDS);
-          if (!isLoginLinkAllowed(counts)) {
+          const { allowed, forEmail, total } = await isLoginLinkAllowed(normalisedEmail);
+          if (!allowed) {
             console.warn(
-              `Magic link not sent: throttled (${counts.forEmail} for this address, ${counts.total} total in the last ${WINDOW_SECONDS}s)`
+              `Magic link not sent: throttled (${forEmail} for this address, ${total} total in the last ${WINDOW_SECONDS}s)`
             );
             return;
           }
@@ -53,8 +53,8 @@ export const auth = betterAuth({
   ],
 });
 
-export async function getCurrentUser(headers: Headers): Promise<AllowedUser | null> {
-  const session = await auth.api.getSession({ headers });
+export async function getCurrentUser(): Promise<AllowedUser | null> {
+  const session = await auth.api.getSession({ headers: await headers() });
   if (!session) {
     return null;
   }

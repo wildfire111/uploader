@@ -4,7 +4,7 @@ import { MoxfieldContentError, MoxfieldReauthRequiredError } from "./moxfieldErr
 import { MOXFIELD_API, moxfieldFetch, readBody } from "./moxfieldHttp";
 import { type DeckImportOutcome, parseCreateFolderResponse, parseDeckImportResponse } from "./moxfieldResponse";
 
-export type PublishDeckInput = {
+type PublishDeckInput = {
   title: string;
   description: string;
   decklist: string;
@@ -71,12 +71,6 @@ async function deleteDeck(shortId: string): Promise<void> {
 }
 
 export async function publishDeck(input: PublishDeckInput): Promise<string> {
-  // dev only, for testing the retry ui
-  const simulated = process.env.MOXFIELD_SIMULATE_FAILURE;
-  if (simulated && process.env.VERCEL_ENV !== "production") {
-    throw new Error(`Simulated Moxfield failure: ${simulated}`);
-  }
-
   if (input.pendingDeckId) {
     await deleteDeck(input.pendingDeckId);
   }
@@ -91,7 +85,7 @@ export async function publishDeck(input: PublishDeckInput): Promise<string> {
   throw new MoxfieldContentError(outcome.message);
 }
 
-export async function createDeckFolder(name: string): Promise<string> {
+async function createDeckFolder(name: string): Promise<string> {
   const response = await authedRequest("POST", "/v1/deck-folders", { name });
   const body = await readBody(response);
   if (!response.ok) {

@@ -1,7 +1,19 @@
 "use client";
 
 import { formatPlacing } from "@/lib/placing";
+import type { DecklistWarning } from "@/lib/decklist/types";
 import type { Entry } from "@/lib/types";
+
+const WARNING_LABELS: Record<DecklistWarning["code"], string> = {
+  points: "points",
+  "deck-size": "deck size",
+  "unknown-card": "card name",
+  singleton: "duplicates",
+};
+
+function warningLabel(warnings: DecklistWarning[]): string {
+  return [...new Set(warnings.map((warning) => WARNING_LABELS[warning.code]))].join(", ");
+}
 
 export function EntriesList({
   entries,
@@ -9,12 +21,14 @@ export function EntriesList({
   isNewEntryOpen,
   locked,
   onSelect,
+  warningsByEntryId,
 }: {
   entries: Entry[];
   selectedEntryId: string | null;
   isNewEntryOpen: boolean;
   locked: boolean;
   onSelect: (entryId: string) => void;
+  warningsByEntryId: Map<string, DecklistWarning[]>;
 }) {
   return (
     <div className="entries-pane">
@@ -44,6 +58,17 @@ export function EntriesList({
             <span className="min-w-0">
               <span className="block truncate">{entry.playerName}</span>
               <span className="block truncate text-sm text-muted">{entry.deckName}</span>
+              {warningsByEntryId.get(entry.id)?.length ? (
+                <span
+                  className="block truncate text-sm text-warn"
+                  title={warningsByEntryId
+                    .get(entry.id)
+                    ?.map((warning) => warning.message)
+                    .join("\n")}
+                >
+                  &#9888; {warningLabel(warningsByEntryId.get(entry.id) ?? [])}
+                </span>
+              ) : null}
             </span>
           </div>
         );

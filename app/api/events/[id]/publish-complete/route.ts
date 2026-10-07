@@ -1,11 +1,10 @@
-import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getEntriesForEvent } from "@/lib/queries/entries";
 import { getEventById, setEventStatus } from "@/lib/queries/events";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const user = await getCurrentUser(await headers());
+  const user = await getCurrentUser();
   if (!user || !user.isAdmin) {
     return NextResponse.json({ error: "You don't have permission to publish." }, { status: 403 });
   }

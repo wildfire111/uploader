@@ -55,7 +55,7 @@ export function parseDeckImportResponse(body: unknown): DeckImportOutcome {
   return { ok: false, deckId, message: `Moxfield could not read the decklist — ${shown}${more}` };
 }
 
-export type CreateFolderOutcome = { ok: true; id: string } | { ok: false; message: string };
+type CreateFolderOutcome = { ok: true; id: string } | { ok: false; message: string };
 
 export function parseCreateFolderResponse(body: unknown): CreateFolderOutcome {
   const response = body as { id?: unknown } | null;
@@ -65,7 +65,7 @@ export function parseCreateFolderResponse(body: unknown): CreateFolderOutcome {
   return { ok: false, message: "Moxfield did not create the folder." };
 }
 
-export type RefreshOutcome =
+type RefreshOutcome =
   | { ok: true; accessToken: string; refreshToken: string; userName: string | null }
   | { ok: false; message: string };
 

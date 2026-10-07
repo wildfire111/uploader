@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { headers } from "next/headers";
-import { redirect } from "next/navigation";
 import { saveMoxfieldTokenAction, saveMoxfieldUserAgentAction } from "@/lib/actions/moxfield";
-import { getCurrentUser } from "@/lib/auth";
+import { requireAdmin } from "@/lib/guards";
+import { formatTimestamp } from "@/lib/formatDate";
 import { getMoxfieldConnectionStatus } from "@/lib/moxfieldAuth";
 import { getMoxfieldUserAgentStatus } from "@/lib/moxfieldUserAgent";
+import { ConnectBookmarklet } from "./ConnectBookmarklet";
+import { ManualInstructionsDialog } from "./ManualInstructionsDialog";
 
 // Always checks with Moxfield, so this must never be served from a cache.
 export const dynamic = "force-dynamic";
@@ -12,23 +13,12 @@ export const dynamic = "force-dynamic";
 const EXAMPLE_USER_AGENT = "MoxKey; youraccount 0123456789ab";
 const EXAMPLE_REFRESH_TOKEN = "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d";
 
-function formatTimestamp(date: Date): string {
-  return `${date.toLocaleString("en-AU", {
-    timeZone: "Australia/Sydney",
-    dateStyle: "medium",
-    timeStyle: "short",
-  })} (Sydney time)`;
-}
-
 export default async function AdminMoxfieldPage({
   searchParams,
 }: {
   searchParams: Promise<{ error?: string; saved?: string }>;
 }) {
-  const user = await getCurrentUser(await headers());
-  if (!user || !user.isAdmin) {
-    redirect("/");
-  }
+  await requireAdmin();
 
   const [status, userAgent, { error, saved }] = await Promise.all([
     getMoxfieldConnectionStatus(),
@@ -37,7 +27,7 @@ export default async function AdminMoxfieldPage({
   ]);
 
   return (
-    <main>
+    <main className="mx-auto max-w-3xl">
       <p>
         <Link href="/">&larr; Events</Link>
       </p>
@@ -92,7 +82,9 @@ export default async function AdminMoxfieldPage({
         If it&apos;s wrong, the first publish fails with a block from Moxfield&apos;s firewall.
       </p>
 
-      <h2>Account connection</h2>
+      <hr className="my-8 border-t-2 border-muted" />
+
+      <h2>Moxfield account</h2>
       {status.state === "connected" ? (
         <p>
           <strong className="text-ok">
@@ -102,6 +94,13 @@ export default async function AdminMoxfieldPage({
           {status.moxfieldUsername ? "Decks are published to that account. " : ""}Last set by{" "}
           {status.updatedBy} on{" "}
           {status.updatedAt ? formatTimestamp(status.updatedAt) : "an unknown date"}.
+        </p>
+      ) : null}
+      {status.state === "connected" ? (
+        <p className="text-muted">
+          You don&apos;t need to do this each time you use the tool. You only need to reconnect if
+          this page says it needs reconnecting. That can happen if the token expires, or if logging
+          in to Moxfield somewhere else replaces it.
         </p>
       ) : null}
       {status.state === "needs_reconnect" ? (
@@ -123,48 +122,32 @@ export default async function AdminMoxfieldPage({
         </p>
       ) : null}
 
-      <h2>{status.state === "connected" ? "Replace the token" : "Connect Moxfield"}</h2>
-      <p>
-        Publishing writes decks to whichever Moxfield account this token belongs to. To get the
-        token:
-      </p>
-      <ol>
-        <li>Log in at moxfield.com in your browser, as the account the decks should go to.</li>
-        <li>Open DevTools (F12) and go to the Network tab, then reload the page.</li>
-        <li>
-          Click the request named <code>authenticated</code> (under <code>startup</code>) and open
-          its Response tab.
-        </li>
-        <li>
-          Inside the <code>refresh</code> object, copy the value of <code>refresh_token</code>
-          {" "}(just the value, not the quotes).
-        </li>
-      </ol>
-      <p>
-        It looks like <code>{EXAMPLE_REFRESH_TOKEN}</code>: 36 letters, digits and dashes. Don&apos;t
-        copy <code>access_token</code> by mistake — that one is much longer and starts with{" "}
-        <code>eyJ</code>.
-      </p>
-      <p>
-        Treat it like the account&apos;s password. It&apos;s checked with Moxfield when you save,
-        and stored encrypted.
-      </p>
+      <ConnectBookmarklet
+        userAgentSet={userAgent.set}
+        collapsed={status.state === "connected" || status.state === "unknown"}
+      >
+        <ManualInstructionsDialog exampleToken={EXAMPLE_REFRESH_TOKEN} />
+        <p>
+          Treat it like the account&apos;s password. It&apos;s checked with Moxfield when you
+          save, and stored encrypted.
+        </p>
 
-      <form action={saveMoxfieldTokenAction}>
-        <label htmlFor="refreshToken">Refresh token</label>
-        <input
-          type="password"
-          id="refreshToken"
-          name="refreshToken"
-          placeholder={EXAMPLE_REFRESH_TOKEN}
-          autoComplete="off"
-          spellCheck={false}
-          required
-        />
-        <button type="submit" data-variant="primary">
-          Check and save
-        </button>
-      </form>
+        <form action={saveMoxfieldTokenAction}>
+          <label htmlFor="refreshToken">Refresh token</label>
+          <input
+            type="password"
+            id="refreshToken"
+            name="refreshToken"
+            placeholder={EXAMPLE_REFRESH_TOKEN}
+            autoComplete="off"
+            spellCheck={false}
+            required
+          />
+          <button type="submit" data-variant="primary" disabled={!userAgent.set}>
+            {userAgent.set ? "Check and save" : "Please set the User-Agent first"}
+          </button>
+        </form>
+      </ConnectBookmarklet>
     </main>
   );
 }

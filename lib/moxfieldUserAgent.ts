@@ -20,7 +20,7 @@ export async function getUserAgent(): Promise<string> {
   }
 }
 
-export type SetUserAgentResult = { ok: true } | { ok: false; error: string };
+type SetUserAgentResult = { ok: true } | { ok: false; error: string };
 
 export async function setMoxfieldUserAgent(
   raw: string,
@@ -34,7 +34,7 @@ export async function setMoxfieldUserAgent(
   return { ok: true };
 }
 
-export type MoxfieldUserAgentStatus = {
+type MoxfieldUserAgentStatus = {
   set: boolean;
   updatedBy: string | null;
   updatedAt: Date | null;

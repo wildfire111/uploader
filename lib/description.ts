@@ -1,4 +1,4 @@
-export type DeckDescriptionInput = {
+type DeckDescriptionInput = {
   date: string; // YYYY-MM-DD
   fullName: string;
   attendance: number;

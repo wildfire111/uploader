@@ -38,5 +38,5 @@ next-env.d.ts
 .tmp-*
 
 # exploratory Moxfield API probe — not part of the app, not for the repo
-/scripts/moxfield_probe.py
+/scripts/
 __pycache__/

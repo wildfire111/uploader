@@ -348,9 +348,28 @@ CHECK (id = 1)
 CHECK (updated_by = lower(updated_by))
 ```
 
-Store the decklist exactly as pasted. No parsing is needed for the MVP.
+Store the decklist exactly as pasted. It is never rewritten; the only parsing is the read-only warnings described under Decklist warnings.
 
 **Emails are always lowercased and trimmed** before being stored or compared: in `allowed_users.email`, `events.created_by`, the login form, and the email read from the Better Auth session. Otherwise `Jo@example.com` could be locked out, or `created_by` could stop matching the logged-in user. Do this in one small `normaliseEmail()` function used everywhere. Both email columns also have a database check (see above) so a mixed-case value can never be stored by mistake.
+
+## Decklist warnings
+
+Entries are never blocked by these; they are soft warnings shown while entering a decklist, when reviewing a submitted entry, in the entries list, and as an event-level message ("N entries with points issues", "N entries with deck size issues").
+
+- **Points**: a list should total 7 or 8 points (7 with a Reserved List card). The points list is the community's `highlander.txt` on GitHub (`Fryyyyy/decklist`), one `Card Name N` per line, only pointed cards. Every line of the decklist counts, mainboard and sideboard. Double-faced cards match by full name or either face.
+- **Reserved List cards**: 7 points is the default total; 8 is only allowed with no Reserved List cards. A deck with any Reserved List card (either board) is warned at 8, and the warning names the cards found. The list of names is in the `reserved_list_cards` table (571 cards), generated once from Scryfall's `is:reserved` search by `db/tools/fetch-reserved-list.mjs` into `db/schema/004_reserved_list.sql`, so it is installed as part of normal database setup and never fetched at runtime. Re-run the script only when new Reserved List cards are printed (rare). Without the table the rule is skipped and 7-8 is allowed.
+- **Lurrus of the Dream-Den in the sideboard**: Lurrus is only pointed when it is the companion, and a decklist doesn't say which. So a sideboard Lurrus is checked both ways: the points total counts it at its current value on the points list (N) and at 0, and the deck passes if either total is allowed. For example, with no Reserved List cards, 10 or 11 points passes, because that is 7 or 8 without Lurrus. The value is read from the points list, so it follows any change to Lurrus's points. Lurrus in the maindeck is just a normal pointed card. Card names are matched ignoring case, accents and hyphens, so "Dream-Den" and "Dream Den" are the same card.
+- **Singleton**: the format allows only one copy of each card, except basic lands (Plains, Island, Swamp, Mountain, Forest, Wastes and their Snow-Covered versions), which can be repeated freely. Copies are counted across the maindeck and sideboard together, and a card spelled in different ways (`Fire // Ice`, `Fire/Ice`, front face only) counts as one card. The few real cards that are allowed more than one copy are not special-cased and will be flagged; that was accepted as rare enough.
+- **Unrecognised card names**: a card name that isn't on Scryfall's list of card names is flagged, with the closest real name suggested when there is one ("Thasa's Oracle" -> "Thassa's Oracle"). Names are matched ignoring case, accents, hyphens and spacing, and `Fire/Ice`, `Fire//Ice` and `Fire // Ice` are the same. A double-faced, split or adventure card matches by its full `Front // Back` name or by its **front face** alone, which is how decklists usually write it; a back face on its own is not accepted.
+  - **How it is stored and loaded.** Scryfall's `/catalog/card-names` (one request, about 35,000 names) is stored in the `card_names` table as one row, already normalised and sorted by length (with the names as written alongside, for showing suggestions), and refreshed in the background once it is a day old, or at once from the Reference Data admin page. No page waits on it. The browser downloads the list in one request after the page loads, from `/api/card-names?v=<version>`, where the version is the stored list's timestamp, so the browser keeps its copy until the list changes (about 560 KB gzipped, once per data version). Only the card-name check waits for it; the page and typing never do. The check is then a local lookup, which is why it can run after every line.
+  - **How a suggestion is chosen.** Only for names that aren't recognised: the typed name is normalised, and only names within a few letters of its length are considered (a contiguous slice of the length-sorted list). Those are filtered by letter counts, then measured by edit distance (a swap of two neighbouring letters counts as one edit), allowing 1 to 3 edits depending on the name's length. The nearest wins.
+  - **While typing**, a half-typed last line isn't checked until a new line is started, the user pauses for a moment, or they leave the box.
+  - The stored names are pre-normalised, so `NORMALISE_VERSION` in `lib/decklist/normalise.ts` must be bumped whenever `normaliseCardName` changes; the list is then rebuilt on the next refresh.
+- **Deck size**: exactly 60 maindeck cards and 15 sideboard cards, quantities summed.
+- **Maindeck vs sideboard**: a `Sideboard` / `SB` header line (optionally `// ` prefixed or ending in `:`, any case, which is what Moxfield's import splits on) starts the sideboard; `SB:` prefixed lines are sideboard; failing both, a plain list of exactly two blank-line-separated groups treats the second as the sideboard. `Deck`/`Maindeck` headers are skipped.
+- **The points list is cached in Postgres** (`points_list`, a single row) and refreshed on demand when older than 24 hours. Nothing waits on GitHub: pages read the stored copy, and the refresh runs after the response is sent. If GitHub can't be reached the stale copy keeps being used; if there's no copy at all the points check is skipped (the size check still runs).
+- **Checking happens in the browser** (`lib/decklist/` is shared by the server and the browser), deferred so typing, pasting and saving are never slowed down. Saved entries are re-checked on every view, so a points-list change shows up with no data migration.
+- The checks are an ordered list of rules over the parsed decklist, so a rule can look at which cards are present (for example, adjusting the allowed points total) without restructuring anything. They live in `lib/decklist/rules.ts`: a new check is a function added to `RULES`.
 
 ## Publishing to Moxfield
 
@@ -361,12 +380,11 @@ publishDeck({ title, decklist }) -> moxfieldDeckId
 ```
 
 - The module knows only about Moxfield: auth, endpoints, request format and parsing responses. It knows nothing about events, entries, placings or the database, beyond the connection state described below.
-- The app knows nothing about Moxfield beyond that. It builds the title (see Deck title format) and passes `decklist_raw` unchanged, then stores the returned ID. The decklist is sent exactly as the volunteer pasted it, with no checking or reformatting. Decklist validation is one of the first planned additions (see Later).
+- The app knows nothing about Moxfield beyond that. It builds the title (see Deck title format) and passes `decklist_raw` unchanged, then stores the returned ID. The decklist is sent exactly as the volunteer pasted it, with no checking or reformatting. Decklist warnings (see Decklist warnings) only read it.
 - The module throws on any failure, with a readable message that the event page can show.
-- The module paces its own requests: it waits a configurable delay before each call to Moxfield (`MOXFIELD_DELAY_MS`, default `1000` — one second, the cautious choice given the limit below), so publishing a whole event never sends a burst of requests. The pacing lives here, not in the publish loop, because it's a Moxfield concern.
-- **The one-request-per-second limit applies only to calls made with the User-Agent alone, and the account-authenticated (Bearer token) calls are explicitly excluded from it.** The limit comes from the email Moxfield's community manager sent with the User-Agent ("no greater than one (1) request per second ... possibly getting banned by the firewall"), which is a condition of that credential; Moxfield hasn't said it covers the authenticated calls, and the project owner has decided it doesn't. So token refresh, create-deck and bulk-edit are strictly outside it, and are paced only by `MOXFIELD_DELAY_MS` — which defaults to a full second anyway, so in practice everything stays within the limit. Any User-Agent-only call (for example a read) must be limited to one per second. Residual risk: Cloudflare returned a 429 (error 1015) on one authenticated call during testing, which is why a 429 stops the run with a clear error (below) and Publish resumes from where it stopped.
+- The module paces its own requests: **every call to Moxfield, authenticated or not, is preceded by a wait** (`MOXFIELD_DELAY_MS`, default `1000`, so at most one request per second), including token refreshes, folder and deck creation, deletes and the retry after a 401. Publishing a whole event therefore never sends a burst of requests. The pacing lives here, not in the publish loop, because it's a Moxfield concern. The wait is per request, which is enough because publishing is driven one entry at a time from one admin's browser; two admins publishing at the same moment (or the Moxfield settings page refreshing the token during a publish) are not coordinated, which is accepted.
+- **The one-request-per-second limit applies to every call.** It comes from the email Moxfield's community manager sent with the User-Agent ("no greater than one (1) request per second ... possibly getting banned by the firewall"), which is a condition of that credential. Moxfield has only stated it for calls made with the User-Agent alone, but the project owner has decided to hold the authenticated (Bearer token) calls to it as well, so nothing is exempt. Residual risk: Cloudflare returned a 429 (error 1015) on one authenticated call during testing, which is why a 429 stops the run with a clear error (below) and Publish resumes from where it stopped.
 - If Moxfield responds that it's rate limiting (HTTP 429), the module throws a clear error and does not retry automatically. The admin can click Publish again to resume.
-- For testing the retry-UI path without touching the real Moxfield connection, set `MOXFIELD_SIMULATE_FAILURE` (any non-empty value, non-production only) to make the module throw before calling Moxfield at all.
 
 **Status of the Moxfield API:** the project owner has investigated and verified the Moxfield API directly (see `scripts/moxfield_probe.py` and its findings). This confirmed both that it supports everything this app needs — creating decks and writing cards to them on the community account — and the exact authentication mechanism (below). Treat publishing as a solved, already-verified problem: do not re-research Moxfield's API or design around the possibility that it won't work.
 
@@ -507,7 +525,7 @@ Do not write tests for pages, database access or the Moxfield module. Check thos
 
 ## Out of scope for MVP
 
-- Decklist validation.
+- Blocking decklist validation: the warnings never stop an entry saving, submitting or publishing.
 - Player name autocomplete.
 - Feedback or notifications to volunteers.
 - Duplicate-event detection.
@@ -516,7 +534,6 @@ Do not write tests for pages, database access or the Moxfield module. Check thos
 
 ## Later (not now)
 
-- **Soft decklist warnings**: total card count, singleton violations (basics excepted), points total against the current points list (stored as editable data, not code), unrecognised card names (Scryfall bulk data).
 - **Player name autocomplete** from names already in `entries`, if admins end up correcting names often.
 - **6-digit login code** alongside the magic link, if email scanners start using up links before volunteers click them.
 

@@ -1,7 +1,5 @@
-import { headers } from "next/headers";
-import { redirect } from "next/navigation";
 import { createEventAction } from "@/lib/actions/events";
-import { getCurrentUser } from "@/lib/auth";
+import { requireUser } from "@/lib/guards";
 import {
   MAX_ATTENDANCE,
   MAX_EVENT_FULL_NAME_LENGTH,
@@ -21,10 +19,7 @@ export default async function NewEventPage({
     attendance?: string;
   }>;
 }) {
-  const user = await getCurrentUser(await headers());
-  if (!user) {
-    redirect("/login");
-  }
+  await requireUser();
 
   const params = await searchParams;
 

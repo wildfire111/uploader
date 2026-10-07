@@ -1,9 +1,5 @@
-import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { pool } from "@/lib/db";
-import { formatDeckDescription } from "@/lib/description";
-import { formatDeckFolderName } from "@/lib/folderName";
 import { getOrCreateFolderId, publishDeck } from "@/lib/moxfield";
 import {
   MoxfieldContentError,
@@ -11,12 +7,29 @@ import {
   MoxfieldReauthRequiredError,
   MoxfieldUserAgentMissingError,
 } from "@/lib/moxfieldErrors";
-import { getEntryById } from "@/lib/queries/entries";
+import {
+  claimEntryForPublish,
+  getEntryById,
+  markEntryPublished,
+  releasePublishClaim,
+  setPendingDeckId,
+} from "@/lib/queries/entries";
 import { getEventById, setEventMoxfieldFolderId } from "@/lib/queries/events";
-import { formatDeckTitle } from "@/lib/title";
+import { publishEntry, type PublishDeps } from "@/lib/publishEntry";
 
-// the claim expiry below has to stay longer than this
+// the publish claim (PUBLISH_CLAIM_MINUTES in lib/queries/entries.ts) has to outlast this
 export const maxDuration = 300;
+
+const publishDeps: PublishDeps = {
+  claimEntryForPublish,
+  getEntryById,
+  setPendingDeckId,
+  markEntryPublished,
+  releasePublishClaim,
+  setEventMoxfieldFolderId,
+  getOrCreateFolderId,
+  publishDeck,
+};
 
 function statusForError(error: unknown): number {
   if (error instanceof MoxfieldReauthRequiredError || error instanceof MoxfieldUserAgentMissingError) {
@@ -32,7 +45,7 @@ function statusForError(error: unknown): number {
 }
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const user = await getCurrentUser(await headers());
+  const user = await getCurrentUser();
   if (!user || !user.isAdmin) {
     return NextResponse.json({ error: "You don't have permission to publish." }, { status: 403 });
   }
@@ -53,75 +66,17 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     );
   }
 
-  if (entry.moxfieldDeckId !== null) {
-    return NextResponse.json({ moxfieldDeckId: entry.moxfieldDeckId });
+  const outcome = await publishEntry(entry, event, publishDeps);
+
+  if (outcome.status === "published") {
+    return NextResponse.json({ moxfieldDeckId: outcome.moxfieldDeckId });
+  }
+  if (outcome.status === "busy") {
+    return NextResponse.json({ error: "This entry is already being published." }, { status: 409 });
   }
 
-  // claim in one statement so two publishes can't both hit moxfield
-  const claim = await pool.query<{ id: string; moxfield_pending_deck_id: string | null }>(
-    `update entries
-     set publish_claimed_at = now()
-     where id = $1
-       and moxfield_deck_id is null
-       and (publish_claimed_at is null or publish_claimed_at < now() - interval '10 minutes')
-     returning id, moxfield_pending_deck_id`,
-    [id]
-  );
-
-  if (claim.rowCount === 0) {
-    const current = await getEntryById(id);
-    if (current?.moxfieldDeckId) {
-      return NextResponse.json({ moxfieldDeckId: current.moxfieldDeckId });
-    }
-    return NextResponse.json(
-      { error: "This entry is already being published." },
-      { status: 409 }
-    );
-  }
-
-  try {
-    const title = formatDeckTitle({
-      placingFrom: entry.placingFrom,
-      placingTo: entry.placingTo,
-      playerName: entry.playerName,
-      deckName: entry.deckName,
-      eventName: event.name,
-    });
-    const folderId = await getOrCreateFolderId({
-      folderId: event.moxfieldFolderId,
-      folderName: formatDeckFolderName({ date: event.date, fullName: event.fullName }),
-      onFolderCreated: (folderId) => setEventMoxfieldFolderId(event.id, folderId),
-    });
-    const moxfieldDeckId = await publishDeck({
-      title,
-      description: formatDeckDescription({
-        date: event.date,
-        fullName: event.fullName,
-        attendance: event.attendance,
-      }),
-      decklist: entry.decklistRaw,
-      folderId,
-      pendingDeckId: claim.rows[0].moxfield_pending_deck_id,
-      onDeckCreated: async (deckId) => {
-        await pool.query(`update entries set moxfield_pending_deck_id = $2 where id = $1`, [
-          id,
-          deckId,
-        ]);
-      },
-    });
-
-    await pool.query(
-      `update entries
-       set moxfield_deck_id = $2, moxfield_pending_deck_id = null, publish_claimed_at = null
-       where id = $1`,
-      [id, moxfieldDeckId]
-    );
-
-    return NextResponse.json({ moxfieldDeckId });
-  } catch (error) {
-    await pool.query(`update entries set publish_claimed_at = null where id = $1`, [id]);
-    const message = error instanceof Error ? error.message : "Could not publish this entry.";
-    console.error(`Publish failed for entry ${id} (event ${event.id}): ${message}`);
-    return NextResponse.json({ error: message }, { status: statusForError(error) });
-  }
+  const message =
+    outcome.error instanceof Error ? outcome.error.message : "Could not publish this entry.";
+  console.error(`Publish failed for entry ${id} (event ${event.id}): ${message}`);
+  return NextResponse.json({ error: message }, { status: statusForError(outcome.error) });
 }

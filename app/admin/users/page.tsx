@@ -1,12 +1,10 @@
 import Link from "next/link";
-import { headers } from "next/headers";
-import { redirect } from "next/navigation";
 import {
   addAllowedUserAction,
   removeAllowedUserAction,
   toggleAdminAction,
 } from "@/lib/actions/allowedUsers";
-import { getCurrentUser } from "@/lib/auth";
+import { requireAdmin } from "@/lib/guards";
 import { listAllowedUsers } from "@/lib/queries/allowedUsers";
 
 export default async function AdminUsersPage({
@@ -14,16 +12,13 @@ export default async function AdminUsersPage({
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
-  const user = await getCurrentUser(await headers());
-  if (!user || !user.isAdmin) {
-    redirect("/");
-  }
+  const user = await requireAdmin();
 
   const users = await listAllowedUsers();
   const { error } = await searchParams;
 
   return (
-    <main>
+    <main className="mx-auto max-w-3xl">
       <p>
         <Link href="/">&larr; Events</Link>
       </p>
@@ -81,9 +76,6 @@ export default async function AdminUsersPage({
       <form action={addAllowedUserAction}>
         <label htmlFor="email">Email</label>
         <input type="email" id="email" name="email" required />
-        <label className="checkbox-label">
-          <input type="checkbox" name="isAdmin" /> Admin
-        </label>
         <button type="submit" data-variant="primary">
           Add
         </button>

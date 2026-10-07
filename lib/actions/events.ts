@@ -1,9 +1,9 @@
 "use server";
 
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { actionError, actionOk, type ActionResult } from "@/lib/actionResult";
 import { getCurrentUser } from "@/lib/auth";
+import { NOT_LOGGED_IN, requireUser } from "@/lib/guards";
 import { canDeleteEvent, canEditEvent, canSubmitEvent } from "@/lib/permissions";
 import { getEntriesForEvent } from "@/lib/queries/entries";
 import {
@@ -14,14 +14,11 @@ import {
   updateEventDetails,
 } from "@/lib/queries/events";
 import { checkTitleLength, formatDeckTitle } from "@/lib/title";
-import type { Event } from "@/lib/types";
+import type { Event, EventDetailsInput } from "@/lib/types";
 import { validateEventDetails } from "@/lib/validation";
 
 export async function createEventAction(formData: FormData): Promise<void> {
-  const user = await getCurrentUser(await headers());
-  if (!user) {
-    redirect("/login");
-  }
+  const user = await requireUser();
 
   const name = String(formData.get("name") ?? "").trim();
   const fullName = String(formData.get("fullName") ?? "").trim();
@@ -47,11 +44,11 @@ export async function createEventAction(formData: FormData): Promise<void> {
 
 export async function updateEventDetailsAction(
   eventId: string,
-  input: { name: string; fullName: string; date: string; attendance: number }
+  input: EventDetailsInput
 ): Promise<ActionResult<Event>> {
-  const user = await getCurrentUser(await headers());
+  const user = await getCurrentUser();
   if (!user) {
-    return actionError("You're not logged in. Reload the page to log in again.");
+    return actionError(NOT_LOGGED_IN);
   }
 
   const event = await getEventById(eventId);
@@ -70,15 +67,7 @@ export async function updateEventDetailsAction(
   // a longer event code can push existing titles over 100 characters
   if (input.name !== event.name) {
     for (const entry of await getEntriesForEvent(eventId)) {
-      const titleProblem = checkTitleLength(
-        formatDeckTitle({
-          placingFrom: entry.placingFrom,
-          placingTo: entry.placingTo,
-          playerName: entry.playerName,
-          deckName: entry.deckName,
-          eventName: input.name,
-        })
-      );
+      const titleProblem = checkTitleLength(formatDeckTitle({ ...entry, eventName: input.name }));
       if (titleProblem) {
         return actionError(
           `That event code doesn't fit ${entry.playerName}'s entry. ${titleProblem}`
@@ -91,9 +80,9 @@ export async function updateEventDetailsAction(
 }
 
 export async function deleteEventAction(eventId: string): Promise<ActionResult<null>> {
-  const user = await getCurrentUser(await headers());
+  const user = await getCurrentUser();
   if (!user) {
-    return actionError("You're not logged in. Reload the page to log in again.");
+    return actionError(NOT_LOGGED_IN);
   }
 
   const event = await getEventById(eventId);
@@ -109,9 +98,9 @@ export async function deleteEventAction(eventId: string): Promise<ActionResult<n
 }
 
 export async function submitEventAction(eventId: string): Promise<ActionResult<null>> {
-  const user = await getCurrentUser(await headers());
+  const user = await getCurrentUser();
   if (!user) {
-    return actionError("You're not logged in. Reload the page to log in again.");
+    return actionError(NOT_LOGGED_IN);
   }
 
   const event = await getEventById(eventId);

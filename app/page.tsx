@@ -1,7 +1,5 @@
-import { headers } from "next/headers";
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
+import { requireUser } from "@/lib/guards";
 import { formatDisplayDate } from "@/lib/formatDate";
 import { getEventsForUser } from "@/lib/queries/events";
 import { getStatusLabel } from "@/lib/statusLabel";
@@ -11,10 +9,7 @@ export default async function EventsPage({
 }: {
   searchParams: Promise<{ submitted?: string }>;
 }) {
-  const user = await getCurrentUser(await headers());
-  if (!user) {
-    redirect("/login");
-  }
+  const user = await requireUser();
 
   const { submitted } = await searchParams;
   const events = await getEventsForUser(user);

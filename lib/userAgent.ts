@@ -1,7 +1,7 @@
 
 export const MAX_USER_AGENT_LENGTH = 300;
 
-export type CleanedUserAgent = { ok: true; value: string } | { ok: false; error: string };
+type CleanedUserAgent = { ok: true; value: string } | { ok: false; error: string };
 
 export function cleanUserAgent(raw: string): CleanedUserAgent {
   // people paste it wrapped in quotes

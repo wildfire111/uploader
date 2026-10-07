@@ -1,6 +1,6 @@
 import "server-only";
 import { pool } from "../db";
-import type { AllowedUser, Event, EventListItem, EventStatus } from "../types";
+import type { AllowedUser, Event, EventDetailsInput, EventListItem, EventStatus } from "../types";
 
 type EventRow = {
   id: string;
@@ -52,13 +52,7 @@ export async function getEventById(id: string): Promise<Event | null> {
   return row ? mapEventRow(row) : null;
 }
 
-export async function createEvent(input: {
-  name: string;
-  fullName: string;
-  date: string;
-  attendance: number;
-  createdBy: string;
-}): Promise<Event> {
+export async function createEvent(input: EventDetailsInput & { createdBy: string }): Promise<Event> {
   const result = await pool.query<EventRow>(
     `insert into events (name, full_name, date, attendance, created_by)
      values ($1, $2, $3, $4, $5)
@@ -68,10 +62,7 @@ export async function createEvent(input: {
   return mapEventRow(result.rows[0]);
 }
 
-export async function updateEventDetails(
-  id: string,
-  input: { name: string; fullName: string; date: string; attendance: number }
-): Promise<Event> {
+export async function updateEventDetails(id: string, input: EventDetailsInput): Promise<Event> {
   const result = await pool.query<EventRow>(
     `update events
      set name = $2, full_name = $3, date = $4, attendance = $5

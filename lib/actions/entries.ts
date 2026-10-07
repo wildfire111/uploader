@@ -1,36 +1,26 @@
 "use server";
 
-import { headers } from "next/headers";
 import { actionError, actionOk, type ActionResult } from "@/lib/actionResult";
 import { getCurrentUser } from "@/lib/auth";
+import { NOT_LOGGED_IN } from "@/lib/guards";
 import { canEditEntry, canEditEvent } from "@/lib/permissions";
 import { createEntry, deleteEntry, getEntryById, updateEntry } from "@/lib/queries/entries";
 import { getEventById } from "@/lib/queries/events";
 import { checkTitleLength, formatDeckTitle } from "@/lib/title";
-import type { Entry } from "@/lib/types";
+import type { Entry, EntryInput } from "@/lib/types";
 import { validateEntryInput } from "@/lib/validation";
 
-type EntryInput = Parameters<typeof validateEntryInput>[0];
-
 function titleProblem(eventName: string, input: EntryInput): string | null {
-  return checkTitleLength(
-    formatDeckTitle({
-      placingFrom: input.placingFrom,
-      placingTo: input.placingTo,
-      playerName: input.playerName,
-      deckName: input.deckName,
-      eventName,
-    })
-  );
+  return checkTitleLength(formatDeckTitle({ ...input, eventName }));
 }
 
 export async function createEntryAction(
   eventId: string,
   input: EntryInput
 ): Promise<ActionResult<Entry>> {
-  const user = await getCurrentUser(await headers());
+  const user = await getCurrentUser();
   if (!user) {
-    return actionError("You're not logged in. Reload the page to log in again.");
+    return actionError(NOT_LOGGED_IN);
   }
 
   const event = await getEventById(eventId);
@@ -53,9 +43,9 @@ export async function updateEntryAction(
   entryId: string,
   input: EntryInput
 ): Promise<ActionResult<Entry>> {
-  const user = await getCurrentUser(await headers());
+  const user = await getCurrentUser();
   if (!user) {
-    return actionError("You're not logged in. Reload the page to log in again.");
+    return actionError(NOT_LOGGED_IN);
   }
 
   const entry = await getEntryById(entryId);
@@ -79,9 +69,9 @@ export async function updateEntryAction(
 }
 
 export async function deleteEntryAction(entryId: string): Promise<ActionResult<null>> {
-  const user = await getCurrentUser(await headers());
+  const user = await getCurrentUser();
   if (!user) {
-    return actionError("You're not logged in. Reload the page to log in again.");
+    return actionError(NOT_LOGGED_IN);
   }
 
   const entry = await getEntryById(entryId);

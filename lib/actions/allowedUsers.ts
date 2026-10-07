@@ -1,29 +1,18 @@
 "use server";
 
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
+import { requireAdmin } from "@/lib/guards";
 import { normaliseEmail } from "@/lib/normaliseEmail";
 import { canRemoveOrDemoteUser } from "@/lib/permissions";
 import { addAllowedUser, removeAllowedUser, setAllowedUserAdmin } from "@/lib/queries/allowedUsers";
-import type { AllowedUser } from "@/lib/types";
-
-async function requireAdmin(): Promise<AllowedUser> {
-  const user = await getCurrentUser(await headers());
-  if (!user || !user.isAdmin) {
-    redirect("/");
-  }
-  return user;
-}
 
 export async function addAllowedUserAction(formData: FormData): Promise<void> {
   await requireAdmin();
 
   const email = normaliseEmail(String(formData.get("email") ?? ""));
-  const isAdmin = formData.get("isAdmin") === "on";
 
   if (email !== "") {
-    await addAllowedUser(email, isAdmin);
+    await addAllowedUser(email);
   }
 
   redirect("/admin/users");

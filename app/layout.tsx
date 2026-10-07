@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { headers } from "next/headers";
 import { logout } from "@/lib/actions/auth";
 import { getCurrentUser } from "@/lib/auth";
 import "./globals.css";
@@ -15,7 +14,7 @@ const HEADER_TEXT =
   "font-medium text-black [text-shadow:1px_1px_2px_white,-1px_-1px_2px_white,1px_-1px_2px_white,-1px_1px_2px_white]";
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const user = await getCurrentUser(await headers());
+  const user = await getCurrentUser();
 
   return (
     <html lang="en">
@@ -39,6 +38,10 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
               <span aria-hidden="true">|</span>
               <Link href="/admin/users" className="text-black hover:text-neutral-700">
                 Manage Users
+              </Link>
+              <span aria-hidden="true">|</span>
+              <Link href="/admin/reference-data" className="text-black hover:text-neutral-700">
+                Reference Data
               </Link>
             </nav>
           ) : null}

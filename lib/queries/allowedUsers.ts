@@ -25,16 +25,14 @@ export async function listAllowedUsers(): Promise<AllowedUser[]> {
   return result.rows.map(mapAllowedUserRow);
 }
 
-export async function addAllowedUser(
-  email: string,
-  isAdmin: boolean
-): Promise<AllowedUser | null> {
+// new users are never admins (is_admin defaults to false); promote with setAllowedUserAdmin
+export async function addAllowedUser(email: string): Promise<AllowedUser | null> {
   const result = await pool.query<AllowedUserRow>(
-    `insert into allowed_users (email, is_admin)
-     values ($1, $2)
+    `insert into allowed_users (email)
+     values ($1)
      on conflict (email) do nothing
      returning *`,
-    [email, isAdmin]
+    [email]
   );
   const row = result.rows[0];
   return row ? mapAllowedUserRow(row) : null;

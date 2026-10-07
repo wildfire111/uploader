@@ -1,10 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
-  canDeleteEntry,
   canDeleteEvent,
   canEditEntry,
   canEditEvent,
-  canPublishEntry,
   canPublishEvent,
   canRemoveOrDemoteUser,
   canSubmitEvent,
@@ -97,33 +95,29 @@ describe("canDeleteEvent", () => {
   });
 });
 
-describe("canEditEntry / canDeleteEntry", () => {
+describe("canEditEntry", () => {
   it("follows the event's edit rule when the entry has no Moxfield id", () => {
     const event = makeEvent({ status: "draft" });
     const entry = makeEntry({ moxfieldDeckId: null });
     expect(canEditEntry(creator, event, entry)).toBe(true);
-    expect(canDeleteEntry(creator, event, entry)).toBe(true);
   });
 
   it("locks an entry with a Moxfield id even for the creator on their own draft", () => {
     const event = makeEvent({ status: "draft" });
     const entry = makeEntry({ moxfieldDeckId: "stub-123" });
     expect(canEditEntry(creator, event, entry)).toBe(false);
-    expect(canDeleteEntry(creator, event, entry)).toBe(false);
   });
 
   it("locks an entry with a Moxfield id even for an admin on a submitted event", () => {
     const event = makeEvent({ status: "submitted" });
     const entry = makeEntry({ moxfieldDeckId: "stub-123" });
     expect(canEditEntry(admin, event, entry)).toBe(false);
-    expect(canDeleteEntry(admin, event, entry)).toBe(false);
   });
 
   it("does not lock an entry that only has a pending deck, so a bad decklist can be fixed", () => {
     const event = makeEvent({ status: "submitted" });
     const entry = makeEntry({ moxfieldDeckId: null, moxfieldPendingDeckId: "abc123" });
     expect(canEditEntry(admin, event, entry)).toBe(true);
-    expect(canDeleteEntry(admin, event, entry)).toBe(true);
   });
 });
 
@@ -170,24 +164,6 @@ describe("canPublishEvent", () => {
   it("cannot publish an already-published event, even for an admin", () => {
     const event = makeEvent({ status: "published" });
     expect(canPublishEvent(admin, event, [makeEntry()])).toBe(false);
-  });
-});
-
-describe("canPublishEntry", () => {
-  it("cannot publish an entry in a draft event, even for an admin", () => {
-    expect(canPublishEntry(admin, makeEvent({ status: "draft" }))).toBe(false);
-  });
-
-  it("cannot publish an entry in an already-published event, even for an admin", () => {
-    expect(canPublishEntry(admin, makeEvent({ status: "published" }))).toBe(false);
-  });
-
-  it("lets an admin publish an entry in a submitted event", () => {
-    expect(canPublishEntry(admin, makeEvent({ status: "submitted" }))).toBe(true);
-  });
-
-  it("does not let a non-admin publish an entry", () => {
-    expect(canPublishEntry(creator, makeEvent({ status: "submitted" }))).toBe(false);
   });
 });
 

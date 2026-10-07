@@ -21,10 +21,6 @@ export function canEditEntry(user: AllowedUser, event: Event, entry: Entry): boo
   return canEditEvent(user, event);
 }
 
-export function canDeleteEntry(user: AllowedUser, event: Event, entry: Entry): boolean {
-  return canEditEntry(user, event, entry);
-}
-
 export function canSubmitEvent(user: AllowedUser, event: Event, entries: Entry[]): boolean {
   if (event.status !== "draft") {
     return false;
@@ -43,10 +39,6 @@ export function canPublishEvent(user: AllowedUser, event: Event, entries: Entry[
     return false;
   }
   return user.isAdmin;
-}
-
-export function canPublishEntry(user: AllowedUser, event: Event): boolean {
-  return user.isAdmin && event.status === "submitted";
 }
 
 // admins can't remove or demote themselves

@@ -137,7 +137,7 @@ function cleanPastedToken(raw: string): string {
   return raw.trim().replace(/^["']+|["']+$/g, "").trim();
 }
 
-export type SetTokenResult = { ok: true } | { ok: false; error: string };
+type SetTokenResult = { ok: true } | { ok: false; error: string };
 
 // pasting spends the token, so store the rotated one
 export async function setMoxfieldRefreshToken(
@@ -182,7 +182,7 @@ export async function setMoxfieldRefreshToken(
   }
 }
 
-export type MoxfieldConnectionStatus = {
+type MoxfieldConnectionStatus = {
   state: "connected" | "needs_reconnect" | "needs_user_agent" | "not_connected" | "unknown";
   moxfieldUsername: string | null;
   updatedBy: string | null;

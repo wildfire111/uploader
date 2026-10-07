@@ -1,3 +1,5 @@
+import type { EntryInput, EventDetailsInput } from "./types";
+
 export const MAX_EVENT_NAME_LENGTH = 100;
 export const MAX_EVENT_FULL_NAME_LENGTH = 100;
 // keeps the number inside the integer column
@@ -8,14 +10,6 @@ export const MAX_EVENT_YEAR = 2099;
 export const MAX_PLAYER_NAME_LENGTH = 80;
 export const MAX_DECK_NAME_LENGTH = 80;
 export const MAX_DECKLIST_LENGTH = 20_000;
-
-type EntryInput = {
-  placingFrom: number;
-  placingTo: number | null;
-  playerName: string;
-  deckName: string;
-  decklistRaw: string;
-};
 
 export function validateEntryInput(input: EntryInput): string | null {
   if (!Number.isInteger(input.placingFrom) || input.placingFrom < 1) {
@@ -47,12 +41,7 @@ function isRealDate(value: string): boolean {
   return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
 }
 
-export function validateEventDetails(input: {
-  name: string;
-  fullName: string;
-  date: string;
-  attendance: number;
-}): string | null {
+export function validateEventDetails(input: EventDetailsInput): string | null {
   if (input.name.trim() === "") {
     return "Enter an event code.";
   }

@@ -1,0 +1,31 @@
+import { NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/auth";
+import { cardNamesList } from "@/lib/referenceLists";
+
+const FOREVER = "private, max-age=31536000, immutable";
+
+// ?v=<version> comes from the page. The version is in the URL, so the browser can keep a copy
+// until the list changes.
+export async function GET(request: Request) {
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json({ error: "Not logged in." }, { status: 401 });
+  }
+
+  const asked = new URL(request.url).searchParams.get("v");
+
+  // no version means the page had no list yet: this is the one place a request waits on Scryfall,
+  // and only for the very first load
+  const stored = asked === null ? await cardNamesList.refreshIfStale() : await cardNamesList.get();
+  if (!stored) {
+    return NextResponse.json({ version: null }, { headers: { "Cache-Control": "no-store" } });
+  }
+
+  const version = stored.fetchedAt.getTime();
+  // only a copy that matches what the URL says can be kept forever
+  const cacheable = asked === String(version);
+  return NextResponse.json(
+    { version, names: stored.data },
+    { headers: { "Cache-Control": cacheable ? FOREVER : "no-store" } }
+  );
+}

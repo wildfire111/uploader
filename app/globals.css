@@ -13,6 +13,8 @@
   --color-link: #60a5fa;
   --color-link-hover: #93c5fd;
   --color-danger: #f87171;
+  /* warnings: a salmon pink, kept apart from the red used for errors */
+  --color-warn: #ffa99a;
   --color-ok: #4ade80;
 }
 
@@ -153,7 +155,7 @@
   }
 
   .warning {
-    @apply border-amber-500/50 bg-amber-500/10 text-amber-300;
+    @apply border-warn/40 bg-warn/10 text-warn;
   }
 
   .error {
@@ -178,8 +180,14 @@
     @apply flex min-h-0 flex-[1_1_0] items-start gap-8;
   }
 
+  /* the entries and the Add entry button: with few entries the button sits just under the last
+     one, and with many the list scrolls while the button stays in view below it */
+  .entries-column {
+    @apply flex max-h-full min-h-0 flex-[0_0_clamp(340px,28%,520px)] flex-col gap-3 self-start;
+  }
+
   .entries-pane {
-    @apply max-h-full flex-[0_0_clamp(340px,28%,520px)] self-start overflow-y-auto rounded-lg border border-line bg-panel;
+    @apply min-h-0 overflow-y-auto rounded-lg border border-line bg-panel;
   }
 
   /* fields and buttons stay put, only the decklist scrolls */

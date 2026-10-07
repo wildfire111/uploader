@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { formatPlacing } from "@/lib/placing";
+import type { CheckLists } from "@/lib/decklist/types";
 import { MAX_DECK_NAME_LENGTH, MAX_DECKLIST_LENGTH, MAX_PLAYER_NAME_LENGTH } from "@/lib/validation";
+import { DecklistChecks } from "./DecklistChecks";
 import type { EntryFieldValues } from "./types";
 
 type Mode = "new" | "existing" | "readonly";
@@ -19,6 +21,7 @@ export function EntryForm({
   isPending,
   error,
   focusPlayerToken,
+  lists,
 }: {
   mode: Mode;
   fields: EntryFieldValues;
@@ -32,8 +35,10 @@ export function EntryForm({
   error: string | null;
   // bump to move focus back to Player after Save & next
   focusPlayerToken?: number;
+  lists: CheckLists;
 }) {
   const playerInputRef = useRef<HTMLInputElement>(null);
+  const [decklistFocused, setDecklistFocused] = useState(false);
 
   useEffect(() => {
     if (focusPlayerToken) {
@@ -82,6 +87,9 @@ export function EntryForm({
         <div className="readonly-field">
           <dt>Decklist</dt>
           <dd className="decklist-readonly">{fields.decklistRaw}</dd>
+        </div>
+        <div className="readonly-field lg:col-start-1">
+          <DecklistChecks decklistRaw={fields.decklistRaw} lists={lists} />
         </div>
       </dl>
     );
@@ -144,6 +152,7 @@ export function EntryForm({
             />
           </label>
 
+          <DecklistChecks decklistRaw={fields.decklistRaw} lists={lists} typing={decklistFocused} />
         </div>
 
         <label className="entry-form-decklist">
@@ -153,6 +162,8 @@ export function EntryForm({
             maxLength={MAX_DECKLIST_LENGTH}
             value={fields.decklistRaw}
             onChange={(event) => updateField("decklistRaw", event.target.value)}
+            onFocus={() => setDecklistFocused(true)}
+            onBlur={() => setDecklistFocused(false)}
           />
         </label>
 

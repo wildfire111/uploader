@@ -1,4 +1,4 @@
-export type DeckFolderNameInput = {
+type DeckFolderNameInput = {
   date: string; // YYYY-MM-DD
   fullName: string;
 };

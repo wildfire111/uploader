@@ -35,3 +35,20 @@ export type AllowedUser = {
 export type EventListItem = Event & {
   entryCount: number;
 };
+
+// what a person types for one result
+export type EntryInput = {
+  placingFrom: number;
+  placingTo: number | null;
+  playerName: string;
+  deckName: string;
+  decklistRaw: string;
+};
+
+// what a person types for an event
+export type EventDetailsInput = {
+  name: string;
+  fullName: string;
+  date: string;
+  attendance: number;
+};
