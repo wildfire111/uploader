@@ -1,4 +1,4 @@
-import { pointsFor } from "./lists";
+import { pointsFor, resolveAlias } from "./lists";
 import { normaliseCardName } from "./normalise";
 import { parseDecklist } from "./parse";
 import type { Board, CardNameSet, CheckLists, DecklistAnalysis, ParsedLine } from "./types";
@@ -8,8 +8,9 @@ import type { Board, CardNameSet, CheckLists, DecklistAnalysis, ParsedLine } fro
 const LURRUS = "lurrus of the dream den";
 
 export function analyseDecklist(raw: string, lists: CheckLists): DecklistAnalysis {
-  const { points, reserved, cardNames } = lists;
-  const parsed = parseDecklist(raw);
+  const { points, reserved, cardNames, aliases } = lists;
+  // a flavor name counts as the card it is printed on, so everything below sees the real name
+  const parsed = parseDecklist(raw).map((line) => ({ ...line, name: resolveAlias(aliases, line.name) }));
   const cards = parsed.map((line) => ({
     ...line,
     points: points ? pointsFor(points, line.name) : 0,

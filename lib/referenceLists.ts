@@ -1,6 +1,6 @@
 import "server-only";
 import { parsePointsFile } from "./decklist/lists";
-import type { PointsList } from "./decklist/types";
+import type { AliasList, PointsList } from "./decklist/types";
 import { getList, saveList, type StoredList } from "./queries/referenceLists";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -179,4 +179,49 @@ export const reservedList = defineList<string[]>({
   size: (names) => names.length,
 });
 
-export const referenceLists = [pointsList, cardNamesList, reservedList];
+// Cards with a flavor name (e.g. the Marvel set's "Widow-Making Infiltrator" for Dauthi Voidwalker),
+// about 700 printings over a few pages. New sets add more, so it refreshes daily.
+const FLAVOR_NAMES_SEARCH_URL =
+  "https://api.scryfall.com/cards/search?q=has%3Aflavor_name&unique=prints&include_extras=true&order=name";
+const MIN_PLAUSIBLE_FLAVOR_NAMES = 100;
+
+export const cardAliasesList = defineList<AliasList>({
+  name: "card_aliases",
+  label: "flavor-name list",
+  maxAgeMs: DAY_MS,
+  fetchFresh: async () => {
+    const aliases: AliasList = {};
+    let url: string | undefined = FLAVOR_NAMES_SEARCH_URL;
+    while (url) {
+      const page = await fetchScryfallJson(url);
+      if (!Array.isArray(page.data)) {
+        throw new Error("Scryfall's reply wasn't a list of cards.");
+      }
+      for (const card of page.data) {
+        if (typeof card?.name !== "string") {
+          throw new Error("Scryfall's reply wasn't a list of cards.");
+        }
+        // a double-faced card has a flavor name on each face
+        const flavorNames = [card.flavor_name, ...(card.card_faces ?? []).map((face: { flavor_name?: unknown }) => face.flavor_name)];
+        for (const flavorName of flavorNames) {
+          if (typeof flavorName === "string" && flavorName !== card.name) {
+            aliases[flavorName] = card.name;
+          }
+        }
+      }
+      url = page.has_more ? page.next_page : undefined;
+      if (url) {
+        await sleep(SCRYFALL_DELAY_MS);
+      }
+    }
+    if (Object.keys(aliases).length < MIN_PLAUSIBLE_FLAVOR_NAMES) {
+      throw new Error(
+        `Scryfall sent only ${Object.keys(aliases).length} flavor names, which is too few to be right. Nothing was changed.`
+      );
+    }
+    return aliases;
+  },
+  size: (aliases) => Object.keys(aliases).length,
+});
+
+export const referenceLists = [pointsList, cardNamesList, reservedList, cardAliasesList];

@@ -1,5 +1,5 @@
 import { cardFaces, frontFace, normaliseCardName } from "./normalise";
-import type { CardNameSet, PointsIndex, PointsList, ReservedIndex } from "./types";
+import type { AliasIndex, AliasList, CardNameSet, PointsIndex, PointsList, ReservedIndex } from "./types";
 
 // each line is "Card Name 3"; the points are whatever follows the last space
 export function parsePointsFile(text: string): PointsList {
@@ -64,4 +64,13 @@ export function buildCardNameSet(names: string[]): CardNameSet {
   }
   set.delete("");
   return set;
+}
+
+export function buildAliasIndex(list: AliasList): AliasIndex {
+  return new Map(Object.entries(list).map(([alias, name]) => [normaliseCardName(alias), name]));
+}
+
+// the card's real name when `name` is a flavor name; otherwise `name` unchanged
+export function resolveAlias(index: AliasIndex | null, name: string): string {
+  return index?.get(normaliseCardName(name)) ?? name;
 }

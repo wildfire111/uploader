@@ -2,9 +2,9 @@
 
 import { useDeferredValue, useMemo } from "react";
 import { analyseDecklist } from "@/lib/decklist/analyse";
-import { buildPointsIndex, buildReservedIndex } from "@/lib/decklist/lists";
+import { buildAliasIndex, buildPointsIndex, buildReservedIndex } from "@/lib/decklist/lists";
 import { checkDecklist } from "@/lib/decklist/rules";
-import type { CheckLists, DecklistWarning, PointsList } from "@/lib/decklist/types";
+import type { AliasList, CheckLists, DecklistWarning, PointsList } from "@/lib/decklist/types";
 import type { Entry } from "@/lib/types";
 import { useCardNames } from "./useCardNames";
 import { usePointsList } from "./usePointsList";
@@ -15,6 +15,7 @@ export function useDecklistChecks({
   pointsList,
   reservedNames,
   cardNamesVersion,
+  aliasList,
 }: {
   entries: Entry[];
   // null until the points list has been loaded
@@ -22,6 +23,7 @@ export function useDecklistChecks({
   reservedNames: string[] | null;
   // when the stored card-name list was fetched; null until there is one
   cardNamesVersion: number | null;
+  aliasList: AliasList | null;
 }) {
   const points = usePointsList(pointsList);
   const cardNames = useCardNames(cardNamesVersion);
@@ -30,8 +32,9 @@ export function useDecklistChecks({
       points: points ? buildPointsIndex(points) : null,
       reserved: reservedNames ? buildReservedIndex(reservedNames) : null,
       cardNames,
+      aliases: aliasList ? buildAliasIndex(aliasList) : null,
     }),
-    [points, reservedNames, cardNames]
+    [points, reservedNames, cardNames, aliasList]
   );
 
   // deferred, so saving an entry never waits on checking the others

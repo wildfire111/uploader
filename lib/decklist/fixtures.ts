@@ -1,6 +1,6 @@
 import { analyseDecklist } from "./analyse";
-import { buildCardNameSet, buildPointsIndex, buildReservedIndex, parsePointsFile } from "./lists";
-import type { CardNameSet, PointsIndex, ReservedIndex } from "./types";
+import { buildAliasIndex, buildCardNameSet, buildPointsIndex, buildReservedIndex, parsePointsFile } from "./lists";
+import type { AliasIndex, CardNameSet, PointsIndex, ReservedIndex } from "./types";
 
 // shared by the decklist tests
 
@@ -12,6 +12,7 @@ export const POINTS_FILE = [
   "Tamiyo, Inquisitive Student // Tamiyo, Seasoned Scholar 2",
   "Lightning Bolt 1",
   "Lurrus of the Dream-Den 3",
+  "Dauthi Voidwalker 4",
 ].join("\n");
 
 export const index = buildPointsIndex(parsePointsFile(POINTS_FILE));
@@ -26,15 +27,21 @@ export const knownCards = buildCardNameSet([
   "Thassa's Oracle",
   "Delver of Secrets // Insectile Aberration",
   "Fire // Ice",
+  "Dauthi Voidwalker",
 ]);
+
+export const aliasIndex = buildAliasIndex({
+  "Widow-Making Infiltrator": "Dauthi Voidwalker",
+});
 
 export function analyse(
   raw: string,
   points: PointsIndex | null,
   reservedIndex: ReservedIndex | null = null,
-  cardNames: CardNameSet | null = null
+  cardNames: CardNameSet | null = null,
+  aliases: AliasIndex | null = null
 ) {
-  return analyseDecklist(raw, { points, reserved: reservedIndex, cardNames });
+  return analyseDecklist(raw, { points, reserved: reservedIndex, cardNames, aliases });
 }
 
 export function filler(count: number, prefix = "Card"): string {

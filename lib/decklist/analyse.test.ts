@@ -1,6 +1,24 @@
 import { describe, expect, it } from "vitest";
 import type { CardNameSet } from "./types";
-import { analyse, index, knownCards } from "./fixtures";
+import { aliasIndex, analyse, index, knownCards } from "./fixtures";
+
+describe("analyseDecklist with flavor names", () => {
+  it("scores a flavor name as the card it is printed on", () => {
+    expect(analyse("1 Widow-Making Infiltrator", index, null, null, aliasIndex).total).toBe(4);
+  });
+
+  it("does not flag a flavor name as unknown", () => {
+    const analysis = analyse("1 Widow-Making Infiltrator", index, null, knownCards, aliasIndex);
+    expect(analysis.unknownCards).toEqual([]);
+    expect(analysis.has("Dauthi Voidwalker")).toBe(true);
+  });
+
+  it("flags the flavor name when no alias list is available", () => {
+    expect(analyse("1 Widow-Making Infiltrator", index, null, knownCards).unknownCards).toEqual([
+      "Widow-Making Infiltrator",
+    ]);
+  });
+});
 
 describe("analyseDecklist", () => {
   it("totals points across both boards, using quantity", () => {

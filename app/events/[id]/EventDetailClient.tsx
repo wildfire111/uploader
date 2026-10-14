@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { deleteEventAction, submitEventAction } from "@/lib/actions/events";
-import type { PointsList } from "@/lib/decklist/types";
+import type { AliasList, PointsList } from "@/lib/decklist/types";
 import {
   canDeleteEvent,
   canEditEntry,
@@ -31,6 +31,7 @@ export function EventDetailClient({
   pointsList,
   reservedNames,
   cardNamesVersion,
+  aliasList,
 }: {
   event: Event;
   entries: Entry[];
@@ -41,6 +42,7 @@ export function EventDetailClient({
   reservedNames: string[] | null;
   // when the stored card-name list was fetched; null until there is one
   cardNamesVersion: number | null;
+  aliasList: AliasList | null;
 }) {
   const [event, setEvent] = useState<Event>(initialEvent);
   const [entries, setEntries] = useState<Entry[]>(() => sortEntries(initialEntries));
@@ -63,6 +65,7 @@ export function EventDetailClient({
     pointsList,
     reservedNames,
     cardNamesVersion,
+    aliasList,
   });
 
   const detailPaneRef = useRef<HTMLDivElement>(null);

@@ -6,11 +6,16 @@ export type PointsIndex = Map<string, number>;
 export type ReservedIndex = Set<string>;
 // normalised card names, including the front face of a double-faced card
 export type CardNameSet = Set<string>;
+// flavor name -> the card's real (oracle) name, as stored in the database
+export type AliasList = Record<string, string>;
+// lookup by normalised flavor name, built from an AliasList
+export type AliasIndex = Map<string, string>;
 // the reference data the checks use; null means that list isn't available
 export type CheckLists = {
   points: PointsIndex | null;
   reserved: ReservedIndex | null;
   cardNames: CardNameSet | null;
+  aliases: AliasIndex | null;
 };
 
 export type Board = "main" | "side";

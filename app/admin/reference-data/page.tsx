@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/guards";
 import { formatTimestamp } from "@/lib/formatDate";
-import { cardNamesList, pointsList, reservedList } from "@/lib/referenceLists";
+import { cardAliasesList, cardNamesList, pointsList, reservedList } from "@/lib/referenceLists";
 import { RefreshButton } from "./RefreshButton";
 
 // Shows what is stored right now, so it must never be served from a cache.
@@ -25,6 +25,12 @@ const SECTIONS = [
     title: "Reserved List",
     noun: "cards",
     about: "Every Reserved List card, from Scryfall, used to limit a deck with any of them to 7 points. It is fetched once and never refreshes itself; update it here when new Reserved List cards are printed (rare).",
+  },
+  {
+    list: cardAliasesList,
+    title: "Flavor names",
+    noun: "names",
+    about: "Alternate card names printed on some cards (e.g. Universes Beyond), from Scryfall. Decklists may use them; they are checked and published as the card's real name. It refreshes itself once it is a day old.",
   },
 ];
 

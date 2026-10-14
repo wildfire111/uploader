@@ -44,6 +44,7 @@ function makeDeps(overrides: Partial<PublishDeps> = {}) {
     releasePublishClaim: vi.fn(async () => {}),
     setEventMoxfieldFolderId: vi.fn(async () => {}),
     getOrCreateFolderId: vi.fn(async () => "folder-1"),
+    prepareDecklist: vi.fn(async (raw: string) => raw),
     publishDeck: vi.fn(async () => "deck-1"),
     ...overrides,
   };

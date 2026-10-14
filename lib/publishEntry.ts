@@ -17,6 +17,8 @@ export type PublishDeps = {
     folderName: string;
     onFolderCreated: (folderId: string) => Promise<void>;
   }): Promise<string>;
+  // the decklist as Moxfield should receive it (flavor names swapped for real card names)
+  prepareDecklist(raw: string): Promise<string>;
   publishDeck(input: {
     title: string;
     description: string;
@@ -66,7 +68,7 @@ export async function publishEntry(
         fullName: event.fullName,
         attendance: event.attendance,
       }),
-      decklist: entry.decklistRaw,
+      decklist: await deps.prepareDecklist(entry.decklistRaw),
       folderId,
       pendingDeckId: claim.pendingDeckId,
       onDeckCreated: (deckId) => deps.setPendingDeckId(entry.id, deckId),
