@@ -152,7 +152,12 @@ export function EntryForm({
             />
           </label>
 
-          <DecklistChecks decklistRaw={fields.decklistRaw} lists={lists} typing={decklistFocused} />
+          <DecklistChecks
+            decklistRaw={fields.decklistRaw}
+            lists={lists}
+            typing={decklistFocused}
+            onChange={(decklistRaw) => updateField("decklistRaw", decklistRaw)}
+          />
         </div>
 
         <label className="entry-form-decklist">

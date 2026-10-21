@@ -1,68 +1,95 @@
+import { normaliseCardName } from "./normalise";
 import type { ParsedLine } from "./types";
 
-// the same header Moxfield's importText splits on
-const SIDEBOARD_HEADER = /^(\/\/\s*)?(sideboard|sb)\s*:?$/i;
-const OTHER_HEADER = /^(\/\/\s*)?(deck|main|maindeck|mainboard|companion|commander)\s*:?$/i;
+const SIDEBOARD_LINE = /sideboard/i;
+const SIDEBOARD_ABBREVIATION = /^(\/\/\s*)?sb\s*:?$/i;
+const OTHER_HEADER = /^(\/\/\s*)?(deck|main|maindeck|mainboard|commander)\s*:?$/i;
+const COMPANION_LINE = /companion/i;
 const SIDEBOARD_PREFIX = /^sb:\s*/i;
-const QUANTITY = /^(\d+)[xX]?\s+(.+)$/;
+const QUANTITY = /^(\d+[xX]?\s+)(.+)$/;
 const FOIL_MARKER = /\s+\*[a-z]+\*$/i;
+const POINTS_MARKER = /\*/g;
 const SET_CODE = /\s+\([a-z0-9]{2,6}\)(\s+\S+)?$/i;
 
-export function parseDecklist(raw: string): ParsedLine[] {
-  type Pending = ParsedLine & { group: number; prefixed: boolean };
-  const lines: Pending[] = [];
-  let inSideboard = false;
-  let sawHeader = false;
-  let group = 0;
-  let cardsInGroup = false;
+// a parsed line plus what is needed to write it back out for Moxfield with only the name changed:
+// "2x " + name + " (MAR) 63 *F*"
+// lineIndex is the line in the text; a companion also has the line of the marker above it
+export type ScannedLine = ParsedLine & {
+  quantityText: string;
+  printing: string;
+  lineIndex: number;
+  markerIndex?: number;
+};
 
-  for (const rawLine of raw.split(/\r?\n/)) {
+// isCardName settles a line that mentions "companion": a card with that in its name is a card,
+// anything else is the marker saying that the next line is the companion
+export function scanDecklist(raw: string, isCardName?: (name: string) => boolean): ScannedLine[] {
+  const lines: ScannedLine[] = [];
+  let inSideboard = false;
+  let companionNext = false;
+  let markerIndex = -1;
+
+  for (const [lineIndex, rawLine] of raw.split(/\r?\n/).entries()) {
     const line = rawLine.trim();
     if (line === "") {
-      if (cardsInGroup) {
-        group += 1;
-        cardsInGroup = false;
-      }
+      // a marker with nothing after it is just noise from the user's deck software
+      companionNext = false;
       continue;
     }
-    if (SIDEBOARD_HEADER.test(line)) {
+    if (SIDEBOARD_LINE.test(line) || SIDEBOARD_ABBREVIATION.test(line)) {
       inSideboard = true;
-      sawHeader = true;
+      companionNext = false;
       continue;
     }
     if (OTHER_HEADER.test(line)) {
+      companionNext = false;
       continue;
     }
 
     const prefixed = SIDEBOARD_PREFIX.test(line);
-    const body = line.replace(SIDEBOARD_PREFIX, "");
+    const unprefixed = line.replace(SIDEBOARD_PREFIX, "");
+    const foil = FOIL_MARKER.exec(unprefixed)?.[0] ?? "";
+    // the * after a card is the points spent on it, which the tool doesn't use
+    const body = unprefixed.replace(FOIL_MARKER, "").replace(POINTS_MARKER, "").trim();
     const match = QUANTITY.exec(body);
-    const quantity = match ? Number(match[1]) : 1;
-    const name = (match ? match[2] : body).replace(FOIL_MARKER, "").replace(SET_CODE, "").trim();
+    const quantityText = match ? match[1] : "";
+    const rest = match ? match[2] : body;
+    const name = rest.replace(SET_CODE, "").trim();
     if (name === "") {
       continue;
     }
-    lines.push({
-      name,
-      quantity,
-      board: prefixed || inSideboard ? "side" : "main",
-      group,
-      prefixed,
-    });
-    cardsInGroup = true;
-  }
+    const printing = (SET_CODE.exec(rest)?.[0] ?? "") + foil;
+    const quantity = match ? Number(match[1].replace(/\D/g, "")) : 1;
+    const isMarker = COMPANION_LINE.test(name) && !isCardName?.(name);
 
-  // a plain export: main, a blank line, then the sideboard
-  const groups = new Set(lines.map((line) => line.group));
-  const hasPrefix = lines.some((line) => line.prefixed);
-  if (!sawHeader && !hasPrefix && groups.size === 2) {
-    const secondGroup = Math.max(...groups);
-    for (const line of lines) {
-      if (line.group === secondGroup) {
-        line.board = "side";
-      }
+    if (isMarker) {
+      companionNext = true;
+      markerIndex = lineIndex;
+    } else if (companionNext) {
+      lines.push({ name, quantity, board: "side", companion: true, quantityText, printing, lineIndex, markerIndex });
+      companionNext = false;
+    } else {
+      const board = prefixed || inSideboard ? "side" : "main";
+      lines.push({ name, quantity, board, quantityText, printing, lineIndex });
     }
   }
 
-  return lines.map(({ name, quantity, board }) => ({ name, quantity, board }));
+  return withoutListedCompanions(lines);
+}
+
+export function parseDecklist(raw: string, isCardName?: (name: string) => boolean): ParsedLine[] {
+  return scanDecklist(raw, isCardName).map(({ name, quantity, board, companion }) =>
+    companion ? { name, quantity, board, companion } : { name, quantity, board }
+  );
+}
+
+// a companion that is also in the sideboard is still one card
+function withoutListedCompanions(lines: ScannedLine[]): ScannedLine[] {
+  const companions = new Set(lines.filter((line) => line.companion).map((line) => normaliseCardName(line.name)));
+  if (companions.size === 0) {
+    return lines;
+  }
+  return lines.filter(
+    (line) => line.companion || line.board !== "side" || !companions.has(normaliseCardName(line.name))
+  );
 }

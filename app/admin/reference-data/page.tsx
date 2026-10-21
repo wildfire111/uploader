@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/guards";
 import { formatTimestamp } from "@/lib/formatDate";
-import { cardAliasesList, cardNamesList, pointsList, reservedList } from "@/lib/referenceLists";
+import { cardAliasesList, cardNamesList, companionsList, pointsList, reservedList } from "@/lib/referenceLists";
 import { RefreshButton } from "./RefreshButton";
 
 // Shows what is stored right now, so it must never be served from a cache.
@@ -31,6 +31,12 @@ const SECTIONS = [
     title: "Flavor names",
     noun: "names",
     about: "Alternate card names printed on some cards (e.g. Universes Beyond), from Scryfall. Decklists may use them; they are checked and published as the card's real name. It refreshes itself once it is a day old.",
+  },
+  {
+    list: companionsList,
+    title: "Companions",
+    noun: "cards",
+    about: "Every card with the companion ability, from Scryfall. A companion in a decklist is checked against it, and a sideboard card on it can be marked as the companion. It refreshes itself once it is a day old.",
   },
 ];
 

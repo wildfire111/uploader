@@ -32,6 +32,7 @@ export function EventDetailClient({
   reservedNames,
   cardNamesVersion,
   aliasList,
+  companionNames,
 }: {
   event: Event;
   entries: Entry[];
@@ -43,6 +44,7 @@ export function EventDetailClient({
   // when the stored card-name list was fetched; null until there is one
   cardNamesVersion: number | null;
   aliasList: AliasList | null;
+  companionNames: string[] | null;
 }) {
   const [event, setEvent] = useState<Event>(initialEvent);
   const [entries, setEntries] = useState<Entry[]>(() => sortEntries(initialEntries));
@@ -66,6 +68,7 @@ export function EventDetailClient({
     reservedNames,
     cardNamesVersion,
     aliasList,
+    companionNames,
   });
 
   const detailPaneRef = useRef<HTMLDivElement>(null);

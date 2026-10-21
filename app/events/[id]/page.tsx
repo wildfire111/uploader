@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { after } from "next/server";
 import { requireUser } from "@/lib/guards";
 import { getStoredMoxfieldUsername } from "@/lib/moxfieldAuth";
-import { cardAliasesList, cardNamesList, pointsList, reservedList } from "@/lib/referenceLists";
+import { cardAliasesList, cardNamesList, companionsList, pointsList, reservedList } from "@/lib/referenceLists";
 import { getEntriesForEvent } from "@/lib/queries/entries";
 import { getEventById } from "@/lib/queries/events";
 import { EventDetailClient } from "./EventDetailClient";
@@ -25,16 +25,18 @@ export default async function EventDetailPage({
   const publishAccount = user.isAdmin ? await getStoredMoxfieldUsername() : null;
 
   // the stored lists now, with any refresh (or the very first fetch) left until the page has been sent
-  const [points, reserved, cardNames, aliases] = await Promise.all([
+  const [points, reserved, cardNames, aliases, companions] = await Promise.all([
     pointsList.get(),
     reservedList.get(),
     cardNamesList.get(),
     cardAliasesList.get(),
+    companionsList.get(),
   ]);
   after(pointsList.refreshIfStale);
   after(reservedList.refreshIfStale);
   after(cardNamesList.refreshIfStale);
   after(cardAliasesList.refreshIfStale);
+  after(companionsList.refreshIfStale);
 
   return (
     <EventDetailClient
@@ -45,6 +47,7 @@ export default async function EventDetailPage({
       pointsList={points?.data ?? null}
       reservedNames={reserved?.data ?? null}
       aliasList={aliases?.data ?? null}
+      companionNames={companions?.data ?? null}
       cardNamesVersion={cardNames?.fetchedAt.getTime() ?? null}
     />
   );

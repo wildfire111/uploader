@@ -39,9 +39,10 @@ export function analyse(
   points: PointsIndex | null,
   reservedIndex: ReservedIndex | null = null,
   cardNames: CardNameSet | null = null,
-  aliases: AliasIndex | null = null
+  aliases: AliasIndex | null = null,
+  companions: CardNameSet | null = null
 ) {
-  return analyseDecklist(raw, { points, reserved: reservedIndex, cardNames, aliases });
+  return analyseDecklist(raw, { points, reserved: reservedIndex, cardNames, aliases, companions });
 }
 
 export function filler(count: number, prefix = "Card"): string {

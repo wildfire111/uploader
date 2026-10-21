@@ -44,7 +44,7 @@ function makeDeps(overrides: Partial<PublishDeps> = {}) {
     releasePublishClaim: vi.fn(async () => {}),
     setEventMoxfieldFolderId: vi.fn(async () => {}),
     getOrCreateFolderId: vi.fn(async () => "folder-1"),
-    prepareDecklist: vi.fn(async (raw: string) => raw),
+    prepareDecklist: vi.fn(async (raw: string) => ({ importText: raw, companion: null })),
     publishDeck: vi.fn(async () => "deck-1"),
     ...overrides,
   };
@@ -79,6 +79,17 @@ describe("publishEntry", () => {
         folderId: "folder-1",
         pendingDeckId: null,
       })
+    );
+  });
+
+  it("sends Moxfield the prepared decklist and the companion to set", async () => {
+    const deps = makeDeps({
+      prepareDecklist: vi.fn(async () => ({ importText: "1 Flash", companion: "Lurrus of the Dream-Den" })),
+    });
+    await publishEntry(makeEntry({ decklistRaw: "1 Flash\nCompanion\n1 Lurrus of the Dream-Den" }), makeEvent(), deps);
+    expect(deps.prepareDecklist).toHaveBeenCalledWith("1 Flash\nCompanion\n1 Lurrus of the Dream-Den");
+    expect(deps.publishDeck).toHaveBeenCalledWith(
+      expect.objectContaining({ decklist: "1 Flash", companion: "Lurrus of the Dream-Den" })
     );
   });
 

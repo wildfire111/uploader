@@ -1,7 +1,9 @@
 "use client";
 
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
-import { analyseDecklist } from "@/lib/decklist/analyse";
+import { analyseDecklist, cardNameCheck } from "@/lib/decklist/analyse";
+import { setCompanion } from "@/lib/decklist/companion";
+import { normaliseCardName } from "@/lib/decklist/normalise";
 import { checkDecklist } from "@/lib/decklist/rules";
 import type { CheckLists } from "@/lib/decklist/types";
 
@@ -13,9 +15,12 @@ export function DecklistChecks({
   decklistRaw,
   lists,
   typing = false,
+  onChange,
 }: {
   decklistRaw: string;
   lists: CheckLists;
+  // present when the decklist can be edited, which is what lets the companion be picked here
+  onChange?: (decklistRaw: string) => void;
   // the decklist box has focus, so the last line may be half typed
   typing?: boolean;
 }) {
@@ -47,6 +52,15 @@ export function DecklistChecks({
     return null;
   }
   const { analysis, warnings } = result;
+  const pickCompanion = (name: string | null) => onChange?.(setCompanion(decklistRaw, name, cardNameCheck(lists)));
+  // the sideboard cards that can be the companion, plus the one chosen even if it can't
+  const companionChoices = onChange
+    ? analysis.cards.filter(
+        (card) =>
+          card.board === "side" &&
+          (card.companion || lists.companions?.has(normaliseCardName(card.name)))
+      )
+    : [];
   return (
     <div>
       <p className="mb-2 text-sm text-muted">
@@ -55,15 +69,34 @@ export function DecklistChecks({
           <>
             {" "}
             &middot; Points {analysis.total}
-            {analysis.totalWithoutLurrus !== null
-              ? ` (${analysis.totalWithoutLurrus} without Lurrus as a companion)`
-              : ""}
           </>
         ) : null}
       </p>
+      {companionChoices.length > 0 ? (
+        <div className="mb-2 text-sm">
+          {companionChoices.map((card) => (
+            <label key={card.name} className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={card.companion === true}
+                onChange={(event) => pickCompanion(event.target.checked ? card.name : null)}
+              />
+              Companion: {card.name}
+            </label>
+          ))}
+        </div>
+      ) : null}
       {warnings.map((warning) => (
         <p key={warning.message} className="warning">
           {warning.message}
+          {onChange && warning.suggestCompanion ? (
+            <>
+              {" "}
+              <button type="button" onClick={() => pickCompanion(warning.suggestCompanion ?? null)}>
+                Mark as companion
+              </button>
+            </>
+          ) : null}
         </p>
       ))}
     </div>

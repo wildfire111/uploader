@@ -9,6 +9,7 @@ const WARNING_LABELS: Record<DecklistWarning["code"], string> = {
   "deck-size": "deck size",
   "unknown-card": "card name",
   singleton: "duplicates",
+  companion: "companion",
 };
 
 function warningLabel(warnings: DecklistWarning[]): string {

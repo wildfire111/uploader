@@ -1,3 +1,4 @@
+import { normaliseCardName } from "./decklist/normalise";
 
 const MAX_LINES_SHOWN = 5;
 
@@ -53,6 +54,22 @@ export function parseDeckImportResponse(body: unknown): DeckImportOutcome {
   const shown = lines.slice(0, MAX_LINES_SHOWN).join("; ");
   const more = lines.length > MAX_LINES_SHOWN ? ` (and ${lines.length - MAX_LINES_SHOWN} more)` : "";
   return { ok: false, deckId, message: `Moxfield could not read the decklist — ${shown}${more}` };
+}
+
+type CardSearchOutcome = { ok: true; cardId: string } | { ok: false; message: string };
+
+// the Moxfield id of the card called `name`, from a card search reply
+export function parseCardSearchResponse(body: unknown, name: string): CardSearchOutcome {
+  const data = (body as { data?: unknown } | null)?.data;
+  const wanted = normaliseCardName(name);
+  if (Array.isArray(data)) {
+    for (const card of data as { id?: unknown; name?: unknown }[]) {
+      if (typeof card?.id === "string" && card.id && typeof card.name === "string" && normaliseCardName(card.name) === wanted) {
+        return { ok: true, cardId: card.id };
+      }
+    }
+  }
+  return { ok: false, message: `Moxfield could not find the companion "${name}".` };
 }
 
 type CreateFolderOutcome = { ok: true; id: string } | { ok: false; message: string };

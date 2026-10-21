@@ -1,5 +1,5 @@
 import "server-only";
-import { parsePointsFile } from "./decklist/lists";
+import { collectAliases, parsePointsFile } from "./decklist/lists";
 import type { AliasList, PointsList } from "./decklist/types";
 import { getList, saveList, type StoredList } from "./queries/referenceLists";
 
@@ -179,11 +179,15 @@ export const reservedList = defineList<string[]>({
   size: (names) => names.length,
 });
 
-// Cards with a flavor name (e.g. the Marvel set's "Widow-Making Infiltrator" for Dauthi Voidwalker),
-// about 700 printings over a few pages. New sets add more, so it refreshes daily.
-const FLAVOR_NAMES_SEARCH_URL =
-  "https://api.scryfall.com/cards/search?q=has%3Aflavor_name&unique=prints&include_extras=true&order=name";
-const MIN_PLAUSIBLE_FLAVOR_NAMES = 100;
+// Cards that go by another name, from two searches. A flavor name (e.g. the Marvel set's "Widow-Making
+// Infiltrator" for Dauthi Voidwalker) is about 700 printings over a few pages. Some printings keep the
+// other name as the English printed name instead (Secret Lair's "Negan, the Cold-Blooded" for Malik,
+// Grim Manipulator), about 275 printings. New sets add more, so it refreshes daily.
+const ALIAS_SEARCH_URLS = [
+  "https://api.scryfall.com/cards/search?q=has%3Aflavor_name&unique=prints&include_extras=true&order=name",
+  "https://api.scryfall.com/cards/search?q=lang%3Aen+has%3Aprinted_name&unique=prints&include_extras=true&order=name",
+];
+const MIN_PLAUSIBLE_ALIASES = 100;
 
 export const cardAliasesList = defineList<AliasList>({
   name: "card_aliases",
@@ -191,30 +195,27 @@ export const cardAliasesList = defineList<AliasList>({
   maxAgeMs: DAY_MS,
   fetchFresh: async () => {
     const aliases: AliasList = {};
-    let url: string | undefined = FLAVOR_NAMES_SEARCH_URL;
-    while (url) {
-      const page = await fetchScryfallJson(url);
-      if (!Array.isArray(page.data)) {
-        throw new Error("Scryfall's reply wasn't a list of cards.");
-      }
-      for (const card of page.data) {
-        if (typeof card?.name !== "string") {
+    for (const searchUrl of ALIAS_SEARCH_URLS) {
+      let url: string | undefined = searchUrl;
+      while (url) {
+        const page = await fetchScryfallJson(url);
+        if (!Array.isArray(page.data)) {
           throw new Error("Scryfall's reply wasn't a list of cards.");
         }
-        // a double-faced card has a flavor name on each face
-        const flavorNames = [card.flavor_name, ...(card.card_faces ?? []).map((face: { flavor_name?: unknown }) => face.flavor_name)];
-        for (const flavorName of flavorNames) {
-          if (typeof flavorName === "string" && flavorName !== card.name) {
-            aliases[flavorName] = card.name;
+        for (const card of page.data) {
+          if (typeof card?.name !== "string") {
+            throw new Error("Scryfall's reply wasn't a list of cards.");
           }
         }
+        Object.assign(aliases, collectAliases(page.data));
+        url = page.has_more ? page.next_page : undefined;
+        if (url) {
+          await sleep(SCRYFALL_DELAY_MS);
+        }
       }
-      url = page.has_more ? page.next_page : undefined;
-      if (url) {
-        await sleep(SCRYFALL_DELAY_MS);
-      }
+      await sleep(SCRYFALL_DELAY_MS);
     }
-    if (Object.keys(aliases).length < MIN_PLAUSIBLE_FLAVOR_NAMES) {
+    if (Object.keys(aliases).length < MIN_PLAUSIBLE_ALIASES) {
       throw new Error(
         `Scryfall sent only ${Object.keys(aliases).length} flavor names, which is too few to be right. Nothing was changed.`
       );
@@ -224,4 +225,41 @@ export const cardAliasesList = defineList<AliasList>({
   size: (aliases) => Object.keys(aliases).length,
 });
 
-export const referenceLists = [pointsList, cardNamesList, reservedList, cardAliasesList];
+// only a handful of cards have the companion ability; new ones come with new sets
+const COMPANIONS_SEARCH_URL = "https://api.scryfall.com/cards/search?q=is%3Acompanion&unique=cards&order=name";
+const MIN_PLAUSIBLE_COMPANIONS = 5;
+
+export const companionsList = defineList<string[]>({
+  name: "companions",
+  label: "companion list",
+  maxAgeMs: DAY_MS,
+  fetchFresh: async () => {
+    const names: string[] = [];
+    let url: string | undefined = COMPANIONS_SEARCH_URL;
+    while (url) {
+      const page = await fetchScryfallJson(url);
+      if (!Array.isArray(page.data)) {
+        throw new Error("Scryfall's reply wasn't a list of cards.");
+      }
+      for (const card of page.data) {
+        if (typeof card?.name !== "string") {
+          throw new Error("Scryfall's reply wasn't a list of cards.");
+        }
+        names.push(card.name);
+      }
+      url = page.has_more ? page.next_page : undefined;
+      if (url) {
+        await sleep(SCRYFALL_DELAY_MS);
+      }
+    }
+    if (names.length < MIN_PLAUSIBLE_COMPANIONS) {
+      throw new Error(
+        `Scryfall sent only ${names.length} companions, which is too few to be right. Nothing was changed.`
+      );
+    }
+    return names;
+  },
+  size: (names) => names.length,
+});
+
+export const referenceLists = [pointsList, cardNamesList, reservedList, cardAliasesList, companionsList];

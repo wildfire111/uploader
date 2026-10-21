@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   isDeadRefreshTokenResponse,
   parseCreateFolderResponse,
+  parseCardSearchResponse,
   parseDeckImportResponse,
   parseRefreshResponse,
 } from "./moxfieldResponse";
@@ -116,5 +117,35 @@ describe("parseRefreshResponse", () => {
     expect(parseRefreshResponse({ refresh: {} }, "r1").ok).toBe(false);
     expect(parseRefreshResponse(null, "r1").ok).toBe(false);
     expect(parseRefreshResponse({ refresh: { access_token: 5 } }, "r1").ok).toBe(false);
+  });
+});
+
+describe("parseCardSearchResponse", () => {
+  const body = (names: string[]) => ({
+    hasMore: false,
+    totalCards: names.length,
+    data: names.map((name, i) => ({ id: `id${i}`, name })),
+  });
+
+  it("finds the card id by name, ignoring case and accents", () => {
+    expect(parseCardSearchResponse(body(["Lurrus of the Dream-Den"]), "lurrus of the dream-den")).toEqual({
+      ok: true,
+      cardId: "id0",
+    });
+  });
+
+  it("skips results with a different name", () => {
+    expect(parseCardSearchResponse(body(["Lurrus Token", "Lurrus of the Dream-Den"]), "Lurrus of the Dream-Den")).toEqual({
+      ok: true,
+      cardId: "id1",
+    });
+  });
+
+  it("fails clearly when the card isn't found", () => {
+    expect(parseCardSearchResponse(body([]), "Lurrus of the Dream-Den")).toEqual({
+      ok: false,
+      message: 'Moxfield could not find the companion "Lurrus of the Dream-Den".',
+    });
+    expect(parseCardSearchResponse("nope", "Lurrus of the Dream-Den").ok).toBe(false);
   });
 });

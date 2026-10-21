@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { analyse, filler, index, knownCards, POINTS_FILE, reserved } from "./fixtures";
-import { buildPointsIndex, parsePointsFile } from "./lists";
+import { analyse, analyse as baseAnalyse, filler, index, knownCards, POINTS_FILE, reserved } from "./fixtures";
+import { buildCardNameSet, buildPointsIndex, parsePointsFile } from "./lists";
 import { allowedPointRange, checkDecklist, RULES, singletonRule } from "./rules";
 
 // Most of these tests are about the points, size and card-name rules, and their fixture decks
@@ -137,99 +137,90 @@ describe("checkDecklist", () => {
       expect(allowedPointRange(analysis)).toEqual({ min: 7, max: 8, reason: null });
     });
   });
-  describe("Lurrus in the sideboard", () => {
-    // main: 7 points. sideboard: Lurrus (3 points when the companion) plus filler
-    function lurrusDeck(mainPoints: string, side = "1 Lurrus of the Dream-Den", filler14 = 14): string {
-      return `${mainPoints}\n${filler(56)}\n\nSideboard\n${side}\n${filler(filler14, "Side")}`;
+  describe("pointed companions", () => {
+    // a card only counts for its points when it is the declared companion; these are the cards
+    // that could be
+    const companions = buildCardNameSet(["Lurrus of the Dream-Den", "Lutri, the Spellchaser"]);
+    const analyse = (raw: string, points: Parameters<typeof baseAnalyse>[1], reservedIndex = reserved) =>
+      baseAnalyse(raw, points, reservedIndex, null, null, companions);
+    // the suggestion to mark a sideboard companion has its own tests
+    const check = (analysis: Parameters<typeof checkDecklist>[0]) =>
+      checkDecklist(analysis, withoutSingleton).filter((warning) => warning.code !== "companion");
+    // main: the given points plus filler. sideboard: Lurrus plus filler. Lurrus is only worth its
+    // points (3) when it is the declared companion.
+    function lurrusDeck(mainPoints: string, { companion = false, side = "1 Lurrus of the Dream-Den" } = {}): string {
+      const sideboard = `Sideboard\n${companion ? "" : `${side}\n`}${filler(14, "Side")}`;
+      return `${companion ? `Companion\n${side}\n` : ""}${mainPoints}\n${filler(56)}\n\n${sideboard}`;
     }
     // none of these are on the Reserved List
+    const four = "1 Thassa's Oracle\n1 Card 1\n1 Card 2\n1 Card 3";
     const seven = "1 Thassa's Oracle\n1 Tamiyo, Inquisitive Student\n1 Card 1\n1 Card 2";
     const eight = "1 Thassa's Oracle\n1 Flash\n1 Card 1\n1 Card 2";
-    const nine = "1 Thassa's Oracle\n1 Flash\n1 Lightning Bolt\n1 Card 1";
 
-    it("allows 10 points with no reserved cards, because 7 without Lurrus", () => {
+    it("does not count a sideboard Lurrus that isn't the companion", () => {
       const analysis = analyse(lurrusDeck(seven), index, reserved);
-      expect(analysis.total).toBe(10);
-      expect(analysis.totalWithoutLurrus).toBe(7);
+      expect(analysis.total).toBe(7);
       expect(check(analysis)).toEqual([]);
     });
 
-    it("allows 11 points with no reserved cards, because 8 without Lurrus", () => {
-      const analysis = analyse(lurrusDeck(eight), index, reserved);
-      expect(analysis.total).toBe(11);
-      expect(check(analysis)).toEqual([]);
-    });
-
-    it("allows a total that only fits with Lurrus counted as the companion", () => {
-      // 5 + 3 = 8 with Lurrus, but 5 without: only the companion reading is valid
-      const analysis = analyse(lurrusDeck("1 Thassa's Oracle\n1 Card 1\n1 Card 2\n1 Card 3"), index, reserved);
+    it("counts Lurrus once it is the declared companion", () => {
+      const analysis = analyse(lurrusDeck(four, { companion: true }), index, reserved);
       expect(analysis.total).toBe(8);
-      expect(analysis.totalWithoutLurrus).toBe(5);
       expect(check(analysis)).toEqual([]);
     });
 
-    it("flags a total that fits neither way", () => {
-      // 12 with Lurrus counted, 9 without: neither is 7 or 8
-      const analysis = analyse(lurrusDeck(nine), index, reserved);
-      expect(analysis.total).toBe(12);
-      expect(analysis.totalWithoutLurrus).toBe(9);
+    it("flags a list that is short because the companion wasn't declared", () => {
+      // 5 points in the maindeck and Lurrus (3) in the sideboard: only the declared reading reaches 8
+      const analysis = analyse(lurrusDeck(four), index, reserved);
+      expect(analysis.total).toBe(5);
       expect(check(analysis)).toEqual([
-        {
-          code: "points",
-          message:
-            "This list totals 12 points (9 without Lurrus as a companion); expected 7 or 8.",
-        },
+        { code: "points", message: "This list totals 5 points; expected 7 or 8." },
       ]);
     });
 
-    it("uses the Reserved List limit for both totals", () => {
-      // 8 without Lurrus, with a reserved card: the cap is 7, so 8 and 11 both fail
-      const deck = lurrusDeck(`${eight}\n1 Taiga`);
-      const analysis = analyse(deck, index, reserved);
-      expect(analysis.totalWithoutLurrus).toBe(8);
-      expect(check(analysis).map((w) => w.code)).toContain("points");
-      // 10 with Lurrus, 7 without, with a reserved card: fine
-      expect(
-        check(analyse(lurrusDeck(`${seven}\n1 Taiga`), index, reserved)).some(
-          (w) => w.code === "points"
-        )
-      ).toBe(false);
+    it("flags a declared companion that takes the list over the limit", () => {
+      const analysis = analyse(lurrusDeck(eight, { companion: true }), index, reserved);
+      expect(analysis.total).toBe(11);
+      expect(check(analysis).map((w) => w.code)).toEqual(["points"]);
+    });
+
+    it("uses the Reserved List limit", () => {
+      const withTaiga = "1 Lightning Bolt\n1 Flash\n1 Card 1\n1 Taiga";
+      // 4 points + Lurrus (3) = 7, the cap with a reserved card
+      expect(check(analyse(lurrusDeck(withTaiga, { companion: true }), index, reserved))).toEqual([]);
+      // 5 + 3 = 8 is over it
+      const over = "1 Thassa's Oracle\n1 Card 1\n1 Card 2\n1 Taiga";
+      expect(check(analyse(lurrusDeck(over, { companion: true }), index, reserved)).map((w) => w.code)).toEqual(["points"]);
     });
 
     it("uses whatever Lurrus is currently worth on the points list", () => {
       const withValue = (points: number) =>
         buildPointsIndex(parsePointsFile(`${POINTS_FILE}\nLurrus of the Dream-Den ${points}`));
-      // 2 points: 9 with Lurrus counted, 7 without; fits via the 7
-      const two = analyse(lurrusDeck(seven), withValue(2), reserved);
-      expect(two.total).toBe(9);
-      expect(two.totalWithoutLurrus).toBe(7);
-      expect(check(two)).toEqual([]);
-      // 5 points: 12 with, 7 without
-      const five = analyse(lurrusDeck(seven), withValue(5), reserved);
-      expect(five.total).toBe(12);
-      expect(check(five)).toEqual([]);
-      // worth 0: no alternative is needed, the total is just the total
-      const zero = analyse(lurrusDeck(seven), withValue(0), reserved);
-      expect(zero.total).toBe(7);
-      expect(zero.totalWithoutLurrus).toBeNull();
-      expect(check(zero)).toEqual([]);
+      expect(analyse(lurrusDeck(seven, { companion: true }), withValue(2), reserved).total).toBe(9);
+      expect(analyse(lurrusDeck(seven, { companion: true }), withValue(0), reserved).total).toBe(7);
+      expect(analyse(lurrusDeck(seven), withValue(5), reserved).total).toBe(7);
     });
 
-    it("does nothing for Lurrus in the maindeck", () => {
+    it("never counts a companion in the maindeck", () => {
       const main = `1 Ancestral Recall\n1 Tamiyo, Inquisitive Student\n1 Lurrus of the Dream-Den\n${filler(57)}\n\nSideboard\n${filler(15, "Side")}`;
       const analysis = analyse(main, index, reserved);
-      expect(analysis.total).toBe(10);
-      expect(analysis.totalWithoutLurrus).toBeNull();
-      expect(check(analysis).map((w) => w.code)).toContain("points");
+      expect(analysis.total).toBe(7);
+      expect(check(analysis)).toEqual([]);
+    });
+
+    it("does the same for any other companion on the list", () => {
+      const lutri = buildPointsIndex(parsePointsFile(`${POINTS_FILE}\nLutri, the Spellchaser 3`));
+      const side = "1 Lutri, the Spellchaser";
+      expect(analyse(lurrusDeck(seven, { side }), lutri, reserved).total).toBe(7);
+      expect(analyse(lurrusDeck(seven, { side, companion: true }), lutri, reserved).total).toBe(10);
+    });
+
+    it("does not zero a pointed card that can't be a companion", () => {
+      expect(analyse(lurrusDeck(seven, { side: "1 Flash" }), index, reserved).total).toBe(10);
     });
 
     it("matches the name with a space instead of the hyphen, in any case", () => {
-      const analysis = analyse(lurrusDeck(seven, "1 LURRUS OF THE DREAM DEN"), index, reserved);
-      expect(analysis.totalWithoutLurrus).toBe(7);
-    });
-
-    it("has no alternative without a points list", () => {
-      expect(analyse(lurrusDeck(seven), null, reserved).totalWithoutLurrus).toBeNull();
+      expect(analyse(lurrusDeck(seven, { side: "1 LURRUS OF THE DREAM DEN" }), index, reserved).total).toBe(7);
     });
   });
 
@@ -325,5 +316,46 @@ describe("checkDecklist", () => {
         checkDecklist(analyse("1 Flash\n1 Flash", null), [singletonRule]).some((warning) => warning.code === "singleton")
       ).toBe(true);
     });
+  });
+});
+
+describe("companion warnings", () => {
+  const companions = buildCardNameSet(["Lurrus of the Dream-Den", "Zirda, the Dawnwaker"]);
+  const warnings = (raw: string) =>
+    checkDecklist(analyse(raw, index, null, null, null, companions), [RULES[RULES.length - 1]]);
+
+  it("has none for a legal companion", () => {
+    expect(warnings("1 Flash\nCompanion\n1 Lurrus of the Dream-Den")).toEqual([]);
+  });
+
+  it("flags a companion that can't be one, but still counts it", () => {
+    expect(warnings("1 Flash\nCompanion\n1 Flash")).toEqual([
+      { code: "companion", message: '"Flash" can\'t be a companion.' },
+    ]);
+  });
+
+  it("flags a second companion", () => {
+    expect(warnings("Companion\n1 Lurrus of the Dream-Den\nCompanion\n1 Zirda, the Dawnwaker")).toEqual([
+      {
+        code: "companion",
+        message: 'Only one companion can be declared; using "Lurrus of the Dream-Den" and ignoring "Zirda, the Dawnwaker".',
+      },
+    ]);
+  });
+
+  it("flags a companion listed more than once", () => {
+    expect(warnings("Companion\n2 Lurrus of the Dream-Den")).toEqual([
+      { code: "companion", message: 'The companion "Lurrus of the Dream-Den" is listed 2 times; it counts as one card.' },
+    ]);
+  });
+
+  it("offers to make an eligible sideboard card the companion", () => {
+    expect(warnings("1 Flash\nSideboard\n1 Lurrus of the Dream-Den")).toEqual([
+      {
+        code: "companion",
+        message: '"Lurrus of the Dream-Den" is in the sideboard and can be a companion. Do you want to mark it as your companion?',
+        suggestCompanion: "Lurrus of the Dream-Den",
+      },
+    ]);
   });
 });

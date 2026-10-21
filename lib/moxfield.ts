@@ -2,12 +2,19 @@ import "server-only";
 import { getValidAccessToken } from "./moxfieldAuth";
 import { MoxfieldContentError, MoxfieldReauthRequiredError } from "./moxfieldErrors";
 import { MOXFIELD_API, moxfieldFetch, readBody } from "./moxfieldHttp";
-import { type DeckImportOutcome, parseCreateFolderResponse, parseDeckImportResponse } from "./moxfieldResponse";
+import {
+  type DeckImportOutcome,
+  parseCardSearchResponse,
+  parseCreateFolderResponse,
+  parseDeckImportResponse,
+} from "./moxfieldResponse";
 
 type PublishDeckInput = {
   title: string;
   description: string;
   decklist: string;
+  // the card to set as the deck's companion once it exists
+  companion: string | null;
   folderId: string;
   pendingDeckId: string | null;
   onDeckCreated: (deckId: string) => Promise<void>;
@@ -60,6 +67,30 @@ async function createDeckWithImport(
   return parseDeckImportResponse(body);
 }
 
+async function findCardId(name: string): Promise<string> {
+  const response = await authedRequest("GET", `/v2/cards/search/user?q=${encodeURIComponent(name)}&page=1`, undefined);
+  const body = await readBody(response);
+  if (!response.ok) {
+    throw new Error(`Moxfield would not search for the companion (HTTP ${response.status}): ${describe(body)}`);
+  }
+  const parsed = parseCardSearchResponse(body, name);
+  if (!parsed.ok) {
+    throw new MoxfieldContentError(parsed.message);
+  }
+  return parsed.cardId;
+}
+
+// the companion sits on its own board, so the card isn't in the decklist text
+async function setCompanion(deckId: string, name: string): Promise<void> {
+  const cardId = await findCardId(name);
+  const response = await authedRequest("PUT", `/v2/decks/${encodeURIComponent(deckId)}/cards/companions`, { cardId });
+  if (!response.ok) {
+    throw new Error(
+      `Moxfield would not set the companion (HTTP ${response.status}): ${describe(await readBody(response))}`
+    );
+  }
+}
+
 async function deleteDeck(shortId: string): Promise<void> {
   try {
     await authedRequest("DELETE", `/v1/decks/${encodeURIComponent(shortId)}`, undefined);
@@ -77,6 +108,11 @@ export async function publishDeck(input: PublishDeckInput): Promise<string> {
 
   const outcome = await createDeckWithImport(input.title, input.description, input.decklist, input.folderId);
   if (outcome.ok) {
+    if (input.companion) {
+      // the deck exists already, so a retry has to delete it and start again
+      await input.onDeckCreated(outcome.deckId);
+      await setCompanion(outcome.deckId, input.companion);
+    }
     return outcome.deckId;
   }
   if (outcome.deckId) {

@@ -1277,6 +1277,41 @@ paths:
               schema: { $ref: '#/components/schemas/AddCardResponse'
 }
 
+  /v2/decks/{deckId}/cards/companions:
+    put:
+      summary: Set the deck's companion
+      description: |
+        Confirmed: puts the card on the companions board directly; it does not have to be in the
+        deck first, so a companion can be left out of the importText sent to POST /v3/decks.
+        The reply is the board card, with boardType "companions". The cardId is the Moxfield card
+        ID, which GET /v2/cards/search/user returns as `id` for a card found by name.
+      operationId: setCompanion
+      tags: [Cards]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: deckId
+          in: path
+          required: true
+          description: Internal short deck ID
+          schema: { type: string }
+          example: v4A1pq
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [cardId]
+              properties:
+                cardId:
+                  type: string
+                  description: Moxfield card ID
+                  example: Ebea6
+      responses:
+        '200':
+          description: Companion set, returns the board card
+
   /v2/decks/{deckId}/cards/{boardType}/{cardId}:
     put:
       summary: Update a card on a board

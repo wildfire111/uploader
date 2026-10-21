@@ -66,6 +66,35 @@ export function buildCardNameSet(names: string[]): CardNameSet {
   return set;
 }
 
+// the parts of a Scryfall card that can carry another name for it
+type AliasSource = {
+  name: string;
+  flavor_name?: unknown;
+  printed_name?: unknown;
+  card_faces?: { flavor_name?: unknown; printed_name?: unknown }[];
+};
+
+// Another name a card goes by, mapped to its real name. A flavor name (the Marvel set's
+// "Widow-Making Infiltrator") is one; so is a printed name that differs from the card's, which is
+// how Scryfall keeps some Secret Lair and Universes Beyond names (e.g. "Negan, the Cold-Blooded" on
+// Malik, Grim Manipulator). A double-faced card has them on each face.
+export function collectAliases(cards: AliasSource[]): AliasList {
+  const aliases: AliasList = {};
+  for (const card of cards) {
+    const others = [
+      card.flavor_name,
+      card.printed_name,
+      ...(card.card_faces ?? []).flatMap((face) => [face.flavor_name, face.printed_name]),
+    ];
+    for (const other of others) {
+      if (typeof other === "string" && normaliseCardName(other) !== normaliseCardName(card.name)) {
+        aliases[other] = card.name;
+      }
+    }
+  }
+  return aliases;
+}
+
 export function buildAliasIndex(list: AliasList): AliasIndex {
   return new Map(Object.entries(list).map(([alias, name]) => [normaliseCardName(alias), name]));
 }

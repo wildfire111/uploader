@@ -17,12 +17,14 @@ export type PublishDeps = {
     folderName: string;
     onFolderCreated: (folderId: string) => Promise<void>;
   }): Promise<string>;
-  // the decklist as Moxfield should receive it (flavor names swapped for real card names)
-  prepareDecklist(raw: string): Promise<string>;
+  // the decklist as Moxfield should receive it (flavor names swapped for real card names, the
+  // companion taken out), and the companion to set once the deck exists
+  prepareDecklist(raw: string): Promise<{ importText: string; companion: string | null }>;
   publishDeck(input: {
     title: string;
     description: string;
     decklist: string;
+    companion: string | null;
     folderId: string;
     pendingDeckId: string | null;
     onDeckCreated: (deckId: string) => Promise<void>;
@@ -61,6 +63,7 @@ export async function publishEntry(
       onFolderCreated: (createdFolderId) =>
         deps.setEventMoxfieldFolderId(event.id, createdFolderId),
     });
+    const prepared = await deps.prepareDecklist(entry.decklistRaw);
     const moxfieldDeckId = await deps.publishDeck({
       title: formatDeckTitle({ ...entry, eventName: event.name }),
       description: formatDeckDescription({
@@ -68,7 +71,8 @@ export async function publishEntry(
         fullName: event.fullName,
         attendance: event.attendance,
       }),
-      decklist: await deps.prepareDecklist(entry.decklistRaw),
+      decklist: prepared.importText,
+      companion: prepared.companion,
       folderId,
       pendingDeckId: claim.pendingDeckId,
       onDeckCreated: (deckId) => deps.setPendingDeckId(entry.id, deckId),

@@ -43,18 +43,13 @@ const pointsRule: Rule = (analysis) => {
     return [];
   }
   const range = allowedPointRange(analysis);
-  const fits = (total: number) => total >= range.min && total <= range.max;
-  if (fits(analysis.total) || (analysis.totalWithoutLurrus !== null && fits(analysis.totalWithoutLurrus))) {
+  if (analysis.total >= range.min && analysis.total <= range.max) {
     return [];
   }
-  const totals =
-    analysis.totalWithoutLurrus === null
-      ? `${analysis.total} points`
-      : `${analysis.total} points (${analysis.totalWithoutLurrus} without Lurrus as a companion)`;
   return [
     {
       code: "points",
-      message: `This list totals ${totals}; expected ${describeRange(range)}${
+      message: `This list totals ${analysis.total} points; expected ${describeRange(range)}${
         range.reason ? ` because ${range.reason}` : ""
       }.`,
     },
@@ -143,8 +138,31 @@ const unknownCardsRule: Rule = (analysis) => {
   return warnings;
 };
 
+const companionRule: Rule = (analysis) => {
+  const warnings: DecklistWarning[] = [];
+  const warn = (message: string, suggestCompanion?: string) =>
+    warnings.push({ code: "companion", message, ...(suggestCompanion ? { suggestCompanion } : {}) });
+  if (analysis.companion && analysis.extraCompanions.length > 0) {
+    warn(
+      `Only one companion can be declared; using "${analysis.companion}" and ignoring ${analysis.extraCompanions
+        .map((name) => `"${name}"`)
+        .join(", ")}.`
+    );
+  }
+  if (analysis.companion && analysis.companionQuantity !== null) {
+    warn(`The companion "${analysis.companion}" is listed ${analysis.companionQuantity} times; it counts as one card.`);
+  }
+  if (analysis.companion && analysis.companionEligible === false) {
+    warn(`"${analysis.companion}" can't be a companion.`);
+  }
+  for (const name of analysis.possibleCompanions) {
+    warn(`"${name}" is in the sideboard and can be a companion. Do you want to mark it as your companion?`, name);
+  }
+  return warnings;
+};
+
 // append here for new checks
-export const RULES: Rule[] = [pointsRule, deckSizeRule, singletonRule, unknownCardsRule];
+export const RULES: Rule[] = [pointsRule, deckSizeRule, singletonRule, unknownCardsRule, companionRule];
 
 export function checkDecklist(analysis: DecklistAnalysis, rules: Rule[] = RULES): DecklistWarning[] {
   if (analysis.cards.length === 0) {

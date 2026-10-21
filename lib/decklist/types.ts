@@ -16,10 +16,13 @@ export type CheckLists = {
   reserved: ReservedIndex | null;
   cardNames: CardNameSet | null;
   aliases: AliasIndex | null;
+  // normalised names of the cards that can be a companion
+  companions: CardNameSet | null;
 };
 
 export type Board = "main" | "side";
-export type ParsedLine = { name: string; quantity: number; board: Board };
+// the companion is a sideboard card the player declares; only that line carries the flag
+export type ParsedLine = { name: string; quantity: number; board: Board; companion?: true };
 
 type AnalysedCard = ParsedLine & { points: number };
 export type DecklistAnalysis = {
@@ -30,14 +33,23 @@ export type DecklistAnalysis = {
   total: number | null;
   // the distinct Reserved List cards in the deck, as written in it
   reservedCards: string[];
-  // set only when Lurrus is in the sideboard: the total if it is not the companion
-  totalWithoutLurrus: number | null;
   // card names, as written, that are not in the card-name list
   unknownCards: string[];
+  // the declared companion, by its real name; every one after the first is in extraCompanions
+  companion: string | null;
+  extraCompanions: string[];
+  // set when the companion was written with a quantity other than 1
+  companionQuantity: number | null;
+  // null when there is no companion or no list of eligible cards to check it against
+  companionEligible: boolean | null;
+  // sideboard cards that could be the companion, listed only while none has been declared
+  possibleCompanions: string[];
   has: (name: string) => boolean;
 };
 
 export type DecklistWarning = {
-  code: "points" | "deck-size" | "unknown-card" | "singleton";
+  code: "points" | "deck-size" | "unknown-card" | "singleton" | "companion";
   message: string;
+  // a card the warning offers to make the companion
+  suggestCompanion?: string;
 };

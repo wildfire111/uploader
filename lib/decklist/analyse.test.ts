@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { analyseDecklist } from "./analyse";
+import { buildCardNameSet } from "./lists";
 import type { CardNameSet } from "./types";
 import { aliasIndex, analyse, index, knownCards } from "./fixtures";
 
@@ -84,5 +86,70 @@ describe("unrecognised card names", () => {
 
   it("finds nothing without a card-name list", () => {
     expect(unknownCards("1 Thasa's Oracle", null)).toEqual([]);
+  });
+});
+
+describe("analyseDecklist with a companion", () => {
+  const companions = buildCardNameSet(["Lurrus of the Dream-Den", "Zirda, the Dawnwaker"]);
+  const run = (raw: string, cardNames: CardNameSet | null = knownWithCompanions) =>
+    analyseDecklist(raw, { points: index, reserved: null, cardNames, aliases: aliasIndex, companions });
+  const knownWithCompanions = buildCardNameSet([
+    "Flash",
+    "Faithful Companion",
+    "Lurrus of the Dream-Den",
+    "Zirda, the Dawnwaker",
+    "Dauthi Voidwalker",
+  ]);
+
+  it("puts the companion in the sideboard count and scores it", () => {
+    const analysis = run("1 Flash\nCompanion\n1 Lurrus of the Dream-Den");
+    expect(analysis.companion).toBe("Lurrus of the Dream-Den");
+    expect(analysis.mainCount).toBe(1);
+    expect(analysis.sideCount).toBe(1);
+    expect(analysis.total).toBe(6);
+    expect(analysis.companionEligible).toBe(true);
+    expect(analysis.unknownCards).toEqual([]);
+  });
+
+  it("counts a companion written with another quantity as one card", () => {
+    const analysis = run("Companion\n3 Lurrus of the Dream-Den");
+    expect(analysis.sideCount).toBe(1);
+    expect(analysis.companionQuantity).toBe(3);
+    expect(run("Companion\n1 Lurrus of the Dream-Den").companionQuantity).toBeNull();
+  });
+
+  it("reports the companions after the first", () => {
+    const analysis = run("Companion\n1 Lurrus of the Dream-Den\nCompanion\n1 Zirda, the Dawnwaker");
+    expect(analysis.companion).toBe("Lurrus of the Dream-Den");
+    expect(analysis.extraCompanions).toEqual(["Zirda, the Dawnwaker"]);
+  });
+
+  it("knows when the companion is not on the list of eligible cards", () => {
+    expect(run("Companion\n1 Flash").companionEligible).toBe(false);
+  });
+
+  it("does not check eligibility without the list", () => {
+    const analysis = analyseDecklist("Companion\n1 Flash", {
+      points: index,
+      reserved: null,
+      cardNames: null,
+      aliases: null,
+      companions: null,
+    });
+    expect(analysis.companionEligible).toBeNull();
+  });
+
+  it("finds a card named companion by asking the card-name list", () => {
+    const analysis = run("1 Faithful Companion\n1 Flash");
+    expect(analysis.companion).toBeNull();
+    expect(analysis.mainCount).toBe(2);
+  });
+
+  it("lists eligible sideboard cards only while no companion is declared", () => {
+    expect(run("1 Flash\nSideboard\n1 Lurrus of the Dream-Den").possibleCompanions).toEqual([
+      "Lurrus of the Dream-Den",
+    ]);
+    expect(run("1 Flash\nCompanion\n1 Lurrus of the Dream-Den").possibleCompanions).toEqual([]);
+    expect(run("1 Lurrus of the Dream-Den").possibleCompanions).toEqual([]);
   });
 });

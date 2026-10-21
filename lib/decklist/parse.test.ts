@@ -26,10 +26,10 @@ describe("parseDecklist", () => {
     ]);
   });
 
-  it.each(["Sideboard", "Sideboard:", "SIDEBOARD", "sideboard:", "// Sideboard", "SB:"])(
-    "splits on a %s header",
+  it.each(["Sideboard", "Sideboard:", "SIDEBOARD", "sideboard:", "// Sideboard", "SB:", "Sideboard (15)", "// SIDEBOARD CARDS"])(
+    "splits on a %s line",
     (header) => {
-      const lines = parseDecklist(`1 Flash\n\n${header}\n1 Lightning Bolt`);
+      const lines = parseDecklist(`1 Flash\n${header}\n1 Lightning Bolt`);
       expect(lines.map((line) => line.board)).toEqual(["main", "side"]);
     }
   );
@@ -49,13 +49,80 @@ describe("parseDecklist", () => {
     expect(lines.map((line) => line.board)).toEqual(["main", "main", "main"]);
   });
 
-  it("uses a single blank line as the divider when there is no header", () => {
+  it("ignores blank lines when splitting the sideboard", () => {
     const lines = parseDecklist("1 Flash\n1 Black Lotus\n\n1 Lightning Bolt");
-    expect(lines.map((line) => line.board)).toEqual(["main", "main", "side"]);
+    expect(lines.every((line) => line.board === "main")).toBe(true);
+    const spaced = parseDecklist("1 Flash\n\n1 Black Lotus\n\nSideboard\n\n1 Lightning Bolt");
+    expect(spaced.map((line) => line.board)).toEqual(["main", "main", "side"]);
   });
 
-  it("leaves three or more groups alone", () => {
-    const lines = parseDecklist("1 Flash\n\n1 Black Lotus\n\n1 Lightning Bolt");
-    expect(lines.every((line) => line.board === "main")).toBe(true);
+  it("strips * points markers from names", () => {
+    expect(parseDecklist("1 Lightning Bolt *\n1 *Flash\n1* Black Lotus\n2 Ponder ** (MH2) 152 *")).toEqual([
+      { name: "Lightning Bolt", quantity: 1, board: "main" },
+      { name: "Flash", quantity: 1, board: "main" },
+      { name: "Black Lotus", quantity: 1, board: "main" },
+      { name: "Ponder", quantity: 2, board: "main" },
+    ]);
+  });
+
+  describe("companion", () => {
+    const COMPANION = { companion: true, board: "side" };
+
+    it("puts the card after a Companion line in the sideboard, wherever the marker is", () => {
+      const head = parseDecklist("Companion\n1 Lurrus of the Dream-Den\n1 Flash\nSideboard\n1 Lightning Bolt");
+      expect(head).toEqual([
+        { name: "Lurrus of the Dream-Den", quantity: 1, ...COMPANION },
+        { name: "Flash", quantity: 1, board: "main" },
+        { name: "Lightning Bolt", quantity: 1, board: "side" },
+      ]);
+      const middle = parseDecklist("1 Flash\n// Companion\n1 Lurrus of the Dream-Den\n1 Black Lotus");
+      expect(middle.map((line) => [line.name, line.board])).toEqual([
+        ["Flash", "main"],
+        ["Lurrus of the Dream-Den", "side"],
+        ["Black Lotus", "main"],
+      ]);
+    });
+
+    it("keeps the quantity as written and accepts a marker with a colon or a quantity", () => {
+      expect(parseDecklist("Companion:\n3 Lurrus of the Dream-Den")[0]).toMatchObject({ quantity: 3, companion: true });
+      expect(parseDecklist("1 Companion\nLurrus of the Dream-Den")[0]).toMatchObject({
+        name: "Lurrus of the Dream-Den",
+        companion: true,
+      });
+    });
+
+    it("merges a companion that is also listed in the sideboard", () => {
+      const lines = parseDecklist("Companion\n1 Lurrus of the Dream-Den\nSideboard\n1 Lurrus of the Dream-Den\n1 Flash");
+      expect(lines.filter((line) => line.name === "Lurrus of the Dream-Den")).toHaveLength(1);
+      expect(lines.find((line) => line.name === "Lurrus of the Dream-Den")?.companion).toBe(true);
+      expect(lines).toHaveLength(2);
+    });
+
+    it("ignores a marker followed by a blank line or nothing", () => {
+      expect(parseDecklist("1 Flash\nCompanion\n\n1 Black Lotus")).toEqual([
+        { name: "Flash", quantity: 1, board: "main" },
+        { name: "Black Lotus", quantity: 1, board: "main" },
+      ]);
+      expect(parseDecklist("1 Flash\nCompanion")).toEqual([{ name: "Flash", quantity: 1, board: "main" }]);
+    });
+
+    it("waits for a card when markers are repeated", () => {
+      const lines = parseDecklist("Companion\nCompanion\n1 Lurrus of the Dream-Den");
+      expect(lines).toEqual([{ name: "Lurrus of the Dream-Den", quantity: 1, ...COMPANION }]);
+    });
+
+    it("keeps every card after a second marker flagged, so the analysis can warn", () => {
+      const lines = parseDecklist("Companion\n1 Lurrus of the Dream-Den\nCompanion\n1 Zirda, the Dawnwaker");
+      expect(lines.filter((line) => line.companion)).toHaveLength(2);
+    });
+
+    it("asks the validator before treating a line as a marker", () => {
+      const isCardName = (name: string) => name === "Faithful Companion";
+      expect(parseDecklist("1 Faithful Companion\n1 Flash", isCardName)).toEqual([
+        { name: "Faithful Companion", quantity: 1, board: "main" },
+        { name: "Flash", quantity: 1, board: "main" },
+      ]);
+      expect(parseDecklist("Companion\n1 Lurrus of the Dream-Den", isCardName)[0]).toMatchObject({ companion: true });
+    });
   });
 });
