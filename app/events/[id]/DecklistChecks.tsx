@@ -87,14 +87,6 @@ export function DecklistChecks({
       {warnings.map((warning) => (
         <p key={warning.message} className="warning">
           {warning.message}
-          {onChange && warning.suggestCompanion ? (
-            <>
-              {" "}
-              <button type="button" onClick={() => pickCompanion(warning.suggestCompanion ?? null)}>
-                Mark as companion
-              </button>
-            </>
-          ) : null}
         </p>
       ))}
     </div>

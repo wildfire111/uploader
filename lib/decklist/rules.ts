@@ -140,8 +140,7 @@ const unknownCardsRule: Rule = (analysis) => {
 
 const companionRule: Rule = (analysis) => {
   const warnings: DecklistWarning[] = [];
-  const warn = (message: string, suggestCompanion?: string) =>
-    warnings.push({ code: "companion", message, ...(suggestCompanion ? { suggestCompanion } : {}) });
+  const warn = (message: string) => warnings.push({ code: "companion", message });
   if (analysis.companion && analysis.extraCompanions.length > 0) {
     warn(
       `Only one companion can be declared; using "${analysis.companion}" and ignoring ${analysis.extraCompanions
@@ -154,9 +153,6 @@ const companionRule: Rule = (analysis) => {
   }
   if (analysis.companion && analysis.companionEligible === false) {
     warn(`"${analysis.companion}" can't be a companion.`);
-  }
-  for (const name of analysis.possibleCompanions) {
-    warn(`"${name}" is in the sideboard and can be a companion. Do you want to mark it as your companion?`, name);
   }
   return warnings;
 };

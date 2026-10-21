@@ -42,14 +42,10 @@ export type DecklistAnalysis = {
   companionQuantity: number | null;
   // null when there is no companion or no list of eligible cards to check it against
   companionEligible: boolean | null;
-  // sideboard cards that could be the companion, listed only while none has been declared
-  possibleCompanions: string[];
   has: (name: string) => boolean;
 };
 
 export type DecklistWarning = {
   code: "points" | "deck-size" | "unknown-card" | "singleton" | "companion";
   message: string;
-  // a card the warning offers to make the companion
-  suggestCompanion?: string;
 };

@@ -145,11 +145,4 @@ describe("analyseDecklist with a companion", () => {
     expect(analysis.mainCount).toBe(2);
   });
 
-  it("lists eligible sideboard cards only while no companion is declared", () => {
-    expect(run("1 Flash\nSideboard\n1 Lurrus of the Dream-Den").possibleCompanions).toEqual([
-      "Lurrus of the Dream-Den",
-    ]);
-    expect(run("1 Flash\nCompanion\n1 Lurrus of the Dream-Den").possibleCompanions).toEqual([]);
-    expect(run("1 Lurrus of the Dream-Den").possibleCompanions).toEqual([]);
-  });
 });

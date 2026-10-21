@@ -42,10 +42,6 @@ export function analyseDecklist(raw: string, lists: CheckLists): DecklistAnalysi
     extraCompanions: companionLines.slice(1).map((line) => line.name),
     companionQuantity: companionLines[0] && companionLines[0].quantity !== 1 ? companionLines[0].quantity : null,
     companionEligible: companions && companionLines[0] ? companions.has(normaliseCardName(companionLines[0].name)) : null,
-    possibleCompanions:
-      companions && companionLines.length === 0
-        ? cards.filter((card) => card.board === "side" && companions.has(normaliseCardName(card.name))).map((card) => card.name)
-        : [],
     reservedCards: reserved
       ? [...new Set(cards.filter((card) => reserved.has(normaliseCardName(card.name))).map((card) => card.name))]
       : [],

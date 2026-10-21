@@ -349,13 +349,7 @@ describe("companion warnings", () => {
     ]);
   });
 
-  it("offers to make an eligible sideboard card the companion", () => {
-    expect(warnings("1 Flash\nSideboard\n1 Lurrus of the Dream-Den")).toEqual([
-      {
-        code: "companion",
-        message: '"Lurrus of the Dream-Den" is in the sideboard and can be a companion. Do you want to mark it as your companion?',
-        suggestCompanion: "Lurrus of the Dream-Den",
-      },
-    ]);
+  it("does not warn about an eligible sideboard card that isn't the companion", () => {
+    expect(warnings("1 Flash\nSideboard\n1 Lurrus of the Dream-Den")).toEqual([]);
   });
 });
