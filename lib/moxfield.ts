@@ -4,6 +4,7 @@ import { MoxfieldContentError, MoxfieldReauthRequiredError } from "./moxfieldErr
 import { MOXFIELD_API, moxfieldFetch, readBody } from "./moxfieldHttp";
 import {
   type DeckImportOutcome,
+  findSideboardCardId,
   parseCardSearchResponse,
   parseCreateFolderResponse,
   parseDeckImportResponse,
@@ -51,7 +52,7 @@ async function createDeckWithImport(
   description: string,
   decklist: string,
   folderId: string
-): Promise<DeckImportOutcome> {
+): Promise<{ outcome: DeckImportOutcome; body: unknown }> {
   const response = await authedRequest("POST", "/v3/decks", {
     name: title,
     format: "highlanderAustralian",
@@ -64,7 +65,7 @@ async function createDeckWithImport(
   if (!response.ok) {
     throw new Error(`Moxfield would not create the deck (HTTP ${response.status}): ${describe(body)}`);
   }
-  return parseDeckImportResponse(body);
+  return { outcome: parseDeckImportResponse(body), body };
 }
 
 async function findCardId(name: string): Promise<string> {
@@ -80,9 +81,11 @@ async function findCardId(name: string): Promise<string> {
   return parsed.cardId;
 }
 
-// the companion sits on its own board, so the card isn't in the decklist text
-async function setCompanion(deckId: string, name: string): Promise<void> {
-  const cardId = await findCardId(name);
+// The card is already in the deck's sideboard, from the decklist text; this only marks it as the
+// companion. Its id is read from the deck Moxfield just made, so it is the printing that is in
+// the deck, and looked up by name if the reply doesn't show it.
+async function setCompanion(deckId: string, name: string, createReply: unknown): Promise<void> {
+  const cardId = findSideboardCardId(createReply, name) ?? (await findCardId(name));
   const response = await authedRequest("PUT", `/v2/decks/${encodeURIComponent(deckId)}/cards/companions`, { cardId });
   if (!response.ok) {
     throw new Error(
@@ -106,12 +109,12 @@ export async function publishDeck(input: PublishDeckInput): Promise<string> {
     await deleteDeck(input.pendingDeckId);
   }
 
-  const outcome = await createDeckWithImport(input.title, input.description, input.decklist, input.folderId);
+  const { outcome, body } = await createDeckWithImport(input.title, input.description, input.decklist, input.folderId);
   if (outcome.ok) {
     if (input.companion) {
       // the deck exists already, so a retry has to delete it and start again
       await input.onDeckCreated(outcome.deckId);
-      await setCompanion(outcome.deckId, input.companion);
+      await setCompanion(outcome.deckId, input.companion, body);
     }
     return outcome.deckId;
   }

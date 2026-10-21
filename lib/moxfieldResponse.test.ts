@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   isDeadRefreshTokenResponse,
   parseCreateFolderResponse,
+  findSideboardCardId,
   parseCardSearchResponse,
   parseDeckImportResponse,
   parseRefreshResponse,
@@ -147,5 +148,34 @@ describe("parseCardSearchResponse", () => {
       message: 'Moxfield could not find the companion "Lurrus of the Dream-Den".',
     });
     expect(parseCardSearchResponse("nope", "Lurrus of the Dream-Den").ok).toBe(false);
+  });
+});
+
+describe("findSideboardCardId", () => {
+  const body = (sideboard: Record<string, string>, mainboard: Record<string, string> = {}) => ({
+    deck: {
+      boards: {
+        mainboard: { cards: Object.fromEntries(Object.entries(mainboard).map(([id, name]) => [id, { card: { id, name } }])) },
+        sideboard: { cards: Object.fromEntries(Object.entries(sideboard).map(([id, name]) => [id, { card: { id, name } }])) },
+      },
+    },
+  });
+
+  it("finds the card in the sideboard by name", () => {
+    expect(findSideboardCardId(body({ Ebea6: "Lurrus of the Dream-Den", x1: "Island" }), "lurrus of the dream den")).toBe("Ebea6");
+  });
+
+  it("matches a double-faced card by its front face", () => {
+    expect(findSideboardCardId(body({ d1: "Delver of Secrets // Insectile Aberration" }), "Delver of Secrets")).toBe("d1");
+  });
+
+  it("ignores the maindeck, and a card that isn't there", () => {
+    expect(findSideboardCardId(body({}, { m1: "Lurrus of the Dream-Den" }), "Lurrus of the Dream-Den")).toBeNull();
+    expect(findSideboardCardId(body({ x1: "Island" }), "Lurrus of the Dream-Den")).toBeNull();
+  });
+
+  it("returns null for a reply without the boards", () => {
+    expect(findSideboardCardId({ deck: { id: "abc" } }, "Island")).toBeNull();
+    expect(findSideboardCardId(null, "Island")).toBeNull();
   });
 });

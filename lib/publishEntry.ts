@@ -18,7 +18,7 @@ export type PublishDeps = {
     onFolderCreated: (folderId: string) => Promise<void>;
   }): Promise<string>;
   // the decklist as Moxfield should receive it (flavor names swapped for real card names, the
-  // companion taken out), and the companion to set once the deck exists
+  // companion still in the sideboard), and the companion to mark once the deck exists
   prepareDecklist(raw: string): Promise<{ importText: string; companion: string | null }>;
   publishDeck(input: {
     title: string;

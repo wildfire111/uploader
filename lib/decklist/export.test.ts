@@ -35,20 +35,26 @@ describe("prepareForMoxfield", () => {
     expect(prepareForMoxfield("Deck\n\n1 Flash\n\n\n1 Island", { aliases: null }).importText).toBe("1 Flash\n1 Island");
   });
 
-  it("takes the companion out of the text and returns its real name", () => {
+  it("keeps the companion in the sideboard text, and returns its real name to mark it with", () => {
     const raw = "1 Flash\nCompanion\n1 Widow-Making Infiltrator\nSideboard\n1 Island";
     expect(prepareForMoxfield(raw, { aliases: aliasIndex })).toEqual({
-      importText: "1 Flash\n\nSideboard:\n1 Island",
+      importText: "1 Flash\n\nSideboard:\n1 Dauthi Voidwalker\n1 Island",
       companion: "Dauthi Voidwalker",
     });
   });
 
-  it("takes a companion written (Companion) after its card out of the text too", () => {
+  it("does the same for a companion written (Companion) after its card", () => {
     const raw = "1 Flash\nSideboard\n1 Island\n1 Widow-Making Infiltrator (MAR) 63 (Companion)";
     expect(prepareForMoxfield(raw, { aliases: aliasIndex })).toEqual({
-      importText: "1 Flash\n\nSideboard:\n1 Island",
+      importText: "1 Flash\n\nSideboard:\n1 Island\n1 Dauthi Voidwalker (MAR) 63",
       companion: "Dauthi Voidwalker",
     });
+  });
+
+  it("gives a sideboard of just the companion", () => {
+    expect(prepareForMoxfield("1 Flash\nCompanion\n1 Island", { aliases: null }).importText).toBe(
+      "1 Flash\n\nSideboard:\n1 Island"
+    );
   });
 
   it("has no companion when none is marked", () => {

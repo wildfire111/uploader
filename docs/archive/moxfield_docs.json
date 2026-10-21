@@ -1281,10 +1281,11 @@ paths:
     put:
       summary: Set the deck's companion
       description: |
-        Confirmed: puts the card on the companions board directly; it does not have to be in the
-        deck first, so a companion can be left out of the importText sent to POST /v3/decks.
-        The reply is the board card, with boardType "companions". The cardId is the Moxfield card
-        ID, which GET /v2/cards/search/user returns as `id` for a card found by name.
+        Marks a card as the deck's companion; it does not add the card, so the card has to be in the
+        deck already (a sideboard line in the importText sent to POST /v3/decks). The cardId is the
+        Moxfield card ID: `card.id` of the card in the deck's boards, or `id` from
+        GET /v2/cards/search/user for a card found by name. The reply is the board card, with
+        boardType "companions".
       operationId: setCompanion
       tags: [Cards]
       security:

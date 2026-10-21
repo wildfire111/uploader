@@ -1,4 +1,4 @@
-import { normaliseCardName } from "./decklist/normalise";
+import { frontFace, normaliseCardName } from "./decklist/normalise";
 
 const MAX_LINES_SHOWN = 5;
 
@@ -54,6 +54,25 @@ export function parseDeckImportResponse(body: unknown): DeckImportOutcome {
   const shown = lines.slice(0, MAX_LINES_SHOWN).join("; ");
   const more = lines.length > MAX_LINES_SHOWN ? ` (and ${lines.length - MAX_LINES_SHOWN} more)` : "";
   return { ok: false, deckId, message: `Moxfield could not read the decklist — ${shown}${more}` };
+}
+
+// The Moxfield id of the card called `name` in the new deck's sideboard, read from the create reply;
+// null if the reply doesn't show it, so the caller can look the card up instead.
+export function findSideboardCardId(body: unknown, name: string): string | null {
+  const cards = (body as { deck?: { boards?: { sideboard?: { cards?: unknown } } } } | null)?.deck?.boards?.sideboard?.cards;
+  if (typeof cards !== "object" || cards === null) {
+    return null;
+  }
+  const wanted = normaliseCardName(name);
+  for (const entry of Object.values(cards) as { card?: { id?: unknown; name?: unknown } }[]) {
+    const { id, name: cardName } = entry?.card ?? {};
+    if (typeof id === "string" && id && typeof cardName === "string") {
+      if (normaliseCardName(cardName) === wanted || frontFace(cardName) === wanted) {
+        return id;
+      }
+    }
+  }
+  return null;
 }
 
 type CardSearchOutcome = { ok: true; cardId: string } | { ok: false; message: string };
