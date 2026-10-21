@@ -56,17 +56,6 @@ Schema files live in `db/schema/`, run in order, with no migration framework. Ap
 - `002_better_auth.sql` — Better Auth's own tables (`user`, `session`, `account`, `verification`), generated with `npx @better-auth/cli generate`. The app's own code never queries these directly.
 - `003_reference_lists.sql` — one row per list the decklist checks use (the points list from GitHub, every card name and every Reserved List card from Scryfall). The app fetches them itself: the first time an event page is opened, then the points list and card names again once a day old. The Reserved List is fetched once and only refreshed by an admin at **Reference Data** (top bar), where the other two can also be refreshed sooner. Until the table exists, event pages still work but show no list-based warnings.
 
-Run them in that order on a new database. On an existing database, run only the files it is missing (currently `003`; a database that ran the earlier `003`–`005` should first `drop table points_list, reserved_list_cards, card_names;`). `001` used to be split across several add-on files; it was collapsed into one while no real data existed anywhere, and the existing dev and prod databases were checked to match it exactly, so they need nothing run. **From the first real data onwards, don't edit `001`.** Add new numbered files (`003`, `004`, …) that only ever add to the schema.
-
-## Seeding the first admin
-
-There's no UI for this — the first admin is inserted directly, after which they can use `/admin/users` to add everyone else. Run this in the Neon SQL editor for each project, with the real email substituted:
-
-```sql
-insert into allowed_users (email, is_admin)
-values ('your-email@example.com', true);
-```
-
 ## Adding volunteers
 
 Log in as an admin and open **Manage Users** (in the top bar). Add the person's email; new users are never admins, so use **Make admin** on their row only for people who should publish to Moxfield and manage users. Only whitelisted emails can log in. An email address that isn't on the list still sees "Check your email" but is sent nothing. Removing someone locks them out on their next request.
@@ -85,17 +74,3 @@ If the bookmark doesn't work (a browser or Moxfield change can block it), the pa
 The token is checked with Moxfield when you save — a bad paste is rejected on the spot and nothing is stored. Moxfield replaces the token each time it's used, so the copy you pasted stops working straight away; the app stores and keeps the current one itself. Treat the token like the account's password.
 
 Decks are created **public** in the **Australian Highlander** format (`highlanderAustralian`), because the community's analysis scrapes them from Moxfield.
-
-## When publishing stops working
-
-| What the admin sees | What it means | Fix |
-|---|---|---|
-| "Moxfield needs to be reconnected…" | The saved token is missing, unreadable, or no longer accepted by Moxfield (for example it expired, or the encryption key changed). | Reconnect at `/admin/moxfield` (above). No redeploy needed; then click **Publish** again — it resumes where it stopped. |
-| "Moxfield could not read the decklist — Line 3: Could not find card …" | Moxfield didn't recognise a card name in that entry. Nothing is lost: the deck Moxfield already created is kept for that entry. | Fix the decklist on the entry (admins can edit while the event is *Submitted for review*), then **Publish** again. It fills the same deck rather than creating another. |
-| "Moxfield's User-Agent isn't set…" | No User-Agent is stored, or it can't be read (for example the encryption key changed). Nothing was sent to Moxfield. | Set it under Moxfield Settings. |
-| Publishing fails with a message from Moxfield's firewall (Cloudflare) or HTTP 403 | The User-Agent is wrong, or it belongs to a different Moxfield account than the token. | Set the right one under Moxfield Settings. |
-| "Moxfield is rate limiting requests…" | Moxfield's firewall said slow down. | Wait a minute and click **Publish** again. |
-| "…Check Moxfield for a duplicate of this deck before retrying." | The request may or may not have reached Moxfield (timeout or network error). | Look at the Moxfield account for that deck before retrying. |
-| "The deck title would be N characters over Moxfield's 100-character limit" | The title (placing, player, deck, event name) is too long for Moxfield. Raised when saving an entry or renaming an event. | Shorten the player, deck or event name. |
-
-Moxfield's API has no delete-deck call, so a deck that was created but abandoned (for example, its entry was deleted after a failed publish) has to be deleted by hand on moxfield.com.
