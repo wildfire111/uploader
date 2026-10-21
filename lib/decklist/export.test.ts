@@ -43,6 +43,14 @@ describe("prepareForMoxfield", () => {
     });
   });
 
+  it("takes a companion written (Companion) after its card out of the text too", () => {
+    const raw = "1 Flash\nSideboard\n1 Island\n1 Widow-Making Infiltrator (MAR) 63 (Companion)";
+    expect(prepareForMoxfield(raw, { aliases: aliasIndex })).toEqual({
+      importText: "1 Flash\n\nSideboard:\n1 Island",
+      companion: "Dauthi Voidwalker",
+    });
+  });
+
   it("has no companion when none is marked", () => {
     expect(prepareForMoxfield("1 Flash", { aliases: null }).companion).toBeNull();
   });

@@ -72,20 +72,18 @@ export function DecklistChecks({
           </>
         ) : null}
       </p>
-      {companionChoices.length > 0 ? (
-        <div className="mb-2 text-sm">
-          {companionChoices.map((card) => (
-            <label key={card.name} className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={card.companion === true}
-                onChange={(event) => pickCompanion(event.target.checked ? card.name : null)}
-              />
-              Companion: {card.name}
-            </label>
-          ))}
-        </div>
-      ) : null}
+      {companionChoices.map((card) => (
+        <label key={card.name} className="companion-pill">
+          <button
+            type="button"
+            role="switch"
+            className="switch"
+            aria-checked={card.companion === true}
+            onClick={() => pickCompanion(card.companion ? null : card.name)}
+          />
+          Companion: {card.name}
+        </label>
+      ))}
       {warnings.map((warning) => (
         <p key={warning.message} className="warning">
           {warning.message}

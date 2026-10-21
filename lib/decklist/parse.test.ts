@@ -124,5 +124,38 @@ describe("parseDecklist", () => {
       ]);
       expect(parseDecklist("Companion\n1 Lurrus of the Dream-Den", isCardName)[0]).toMatchObject({ companion: true });
     });
+
+    describe("(Companion) after the card", () => {
+      it("declares the card the companion wherever the line is, and drops the text from the name", () => {
+        expect(parseDecklist("1 Flash\n1 Lurrus of the Dream-Den (Companion)\nSideboard\n1 Island")).toEqual([
+          { name: "Flash", quantity: 1, board: "main" },
+          { name: "Lurrus of the Dream-Den", quantity: 1, board: "side", companion: true },
+          { name: "Island", quantity: 1, board: "side" },
+        ]);
+      });
+
+      it("reads it in any case, with a set code, foil marker or points marker around it", () => {
+        for (const line of [
+          "1 Lurrus of the Dream-Den (companion)",
+          "1 Lurrus of the Dream-Den (MH1) 226 (COMPANION)",
+          "1 Lurrus of the Dream-Den *F* (Companion)",
+          "SB: 1 Lurrus of the Dream-Den (Companion) *",
+        ]) {
+          expect(parseDecklist(`Sideboard\n${line}`)).toEqual([
+            { name: "Lurrus of the Dream-Den", quantity: 1, board: "side", companion: true },
+          ]);
+        }
+      });
+
+      it("merges a companion that is also listed plainly in the sideboard", () => {
+        const lines = parseDecklist("Sideboard\n1 Lurrus of the Dream-Den\n1 Lurrus of the Dream-Den (Companion)");
+        expect(lines).toEqual([{ name: "Lurrus of the Dream-Den", quantity: 1, board: "side", companion: true }]);
+      });
+
+      it("counts a second one as another companion", () => {
+        const lines = parseDecklist("Sideboard\n1 Lurrus of the Dream-Den (Companion)\n1 Zirda, the Dawnwaker (Companion)");
+        expect(lines.filter((line) => line.companion)).toHaveLength(2);
+      });
+    });
   });
 });

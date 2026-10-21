@@ -5,6 +5,7 @@ const SIDEBOARD_LINE = /sideboard/i;
 const SIDEBOARD_ABBREVIATION = /^(\/\/\s*)?sb\s*:?$/i;
 const OTHER_HEADER = /^(\/\/\s*)?(deck|main|maindeck|mainboard|commander)\s*:?$/i;
 const COMPANION_LINE = /companion/i;
+const COMPANION_SUFFIX = /\s*\(companion\)(\s*\*+)?\s*$/i;
 const SIDEBOARD_PREFIX = /^sb:\s*/i;
 const QUANTITY = /^(\d+[xX]?\s+)(.+)$/;
 const FOIL_MARKER = /\s+\*[a-z]+\*$/i;
@@ -19,6 +20,8 @@ export type ScannedLine = ParsedLine & {
   printing: string;
   lineIndex: number;
   markerIndex?: number;
+  // the companion was written as "(Companion)" after the card, not under a Companion line
+  suffix?: true;
 };
 
 // isCardName settles a line that mentions "companion": a card with that in its name is a card,
@@ -47,7 +50,9 @@ export function scanDecklist(raw: string, isCardName?: (name: string) => boolean
     }
 
     const prefixed = SIDEBOARD_PREFIX.test(line);
-    const unprefixed = line.replace(SIDEBOARD_PREFIX, "");
+    const withSuffix = line.replace(SIDEBOARD_PREFIX, "");
+    const unprefixed = withSuffix.replace(COMPANION_SUFFIX, "");
+    const hasSuffix = unprefixed !== withSuffix;
     const foil = FOIL_MARKER.exec(unprefixed)?.[0] ?? "";
     // the * after a card is the points spent on it, which the tool doesn't use
     const body = unprefixed.replace(FOIL_MARKER, "").replace(POINTS_MARKER, "").trim();
@@ -60,9 +65,12 @@ export function scanDecklist(raw: string, isCardName?: (name: string) => boolean
     }
     const printing = (SET_CODE.exec(rest)?.[0] ?? "") + foil;
     const quantity = match ? Number(match[1].replace(/\D/g, "")) : 1;
-    const isMarker = COMPANION_LINE.test(name) && !isCardName?.(name);
+    const isMarker = !hasSuffix && COMPANION_LINE.test(name) && !isCardName?.(name);
 
-    if (isMarker) {
+    if (hasSuffix) {
+      lines.push({ name, quantity, board: "side", companion: true, quantityText, printing, lineIndex, suffix: true });
+      companionNext = false;
+    } else if (isMarker) {
       companionNext = true;
       markerIndex = lineIndex;
     } else if (companionNext) {

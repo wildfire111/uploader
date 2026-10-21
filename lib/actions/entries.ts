@@ -2,6 +2,8 @@
 
 import { actionError, actionOk, type ActionResult } from "@/lib/actionResult";
 import { getCurrentUser } from "@/lib/auth";
+import { loadCardNameCheck } from "@/lib/cardNameLists";
+import { normaliseCompanions } from "@/lib/decklist/companion";
 import { NOT_LOGGED_IN } from "@/lib/guards";
 import { canEditEntry, canEditEvent } from "@/lib/permissions";
 import { createEntry, deleteEntry, getEntryById, updateEntry } from "@/lib/queries/entries";
@@ -14,9 +16,15 @@ function titleProblem(eventName: string, input: EntryInput): string | null {
   return checkTitleLength(formatDeckTitle({ ...input, eventName }));
 }
 
+// a companion is saved as "(Companion)" after its card in the sideboard, however the list wrote it
+async function tidied(input: EntryInput): Promise<EntryInput> {
+  const { isCardName } = await loadCardNameCheck();
+  return { ...input, decklistRaw: normaliseCompanions(input.decklistRaw, isCardName) };
+}
+
 export async function createEntryAction(
   eventId: string,
-  input: EntryInput
+  rawInput: EntryInput
 ): Promise<ActionResult<Entry>> {
   const user = await getCurrentUser();
   if (!user) {
@@ -31,6 +39,7 @@ export async function createEntryAction(
     return actionError("You don't have permission to add entries to this event.");
   }
 
+  const input = await tidied(rawInput);
   const problem = validateEntryInput(input) ?? titleProblem(event.name, input);
   if (problem) {
     return actionError(problem);
@@ -41,7 +50,7 @@ export async function createEntryAction(
 
 export async function updateEntryAction(
   entryId: string,
-  input: EntryInput
+  rawInput: EntryInput
 ): Promise<ActionResult<Entry>> {
   const user = await getCurrentUser();
   if (!user) {
@@ -60,6 +69,7 @@ export async function updateEntryAction(
     return actionError("You don't have permission to edit this entry.");
   }
 
+  const input = await tidied(rawInput);
   const problem = validateEntryInput(input) ?? titleProblem(event.name, input);
   if (problem) {
     return actionError(problem);

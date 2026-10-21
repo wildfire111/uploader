@@ -15,10 +15,8 @@ import {
   setPendingDeckId,
 } from "@/lib/queries/entries";
 import { getEventById, setEventMoxfieldFolderId } from "@/lib/queries/events";
-import { cardNameCheck } from "@/lib/decklist/analyse";
+import { loadCardNameCheck } from "@/lib/cardNameLists";
 import { prepareForMoxfield } from "@/lib/decklist/export";
-import { buildAliasIndex, buildCardNameSet } from "@/lib/decklist/lists";
-import { cardAliasesList, cardNamesList } from "@/lib/referenceLists";
 import { publishEntry, type PublishDeps } from "@/lib/publishEntry";
 
 // the publish claim (PUBLISH_CLAIM_MINUTES in lib/queries/entries.ts) has to outlast this
@@ -33,15 +31,7 @@ const publishDeps: PublishDeps = {
   setEventMoxfieldFolderId,
   getOrCreateFolderId,
   // the stored lists are enough; if one is missing the decklist goes up without its help
-  prepareDecklist: async (raw) => {
-    const [storedAliases, storedNames] = await Promise.all([cardAliasesList.get(), cardNamesList.get()]);
-    const aliases = storedAliases ? buildAliasIndex(storedAliases.data) : null;
-    const cardNames = storedNames ? buildCardNameSet(storedNames.data) : null;
-    return prepareForMoxfield(raw, {
-      aliases,
-      isCardName: cardNameCheck({ points: null, reserved: null, cardNames, aliases, companions: null }),
-    });
-  },
+  prepareDecklist: async (raw) => prepareForMoxfield(raw, await loadCardNameCheck()),
   publishDeck,
 };
 

@@ -162,6 +162,29 @@
     @apply border-danger/50 bg-danger/10 text-danger;
   }
 
+  /* the same box as a warning, but blue: it offers something rather than flagging a problem */
+  .companion-pill {
+    @apply mb-3 flex-row items-center gap-3 rounded-md border border-brand/40 bg-brand/10 px-3 py-2 text-link;
+  }
+
+  /* a rounded on/off toggle; a button with role="switch" and aria-checked */
+  .switch {
+    @apply relative h-5 w-9 shrink-0 rounded-full border-line bg-raised p-0 hover:bg-raised;
+  }
+
+  .switch::after {
+    content: "";
+    @apply absolute top-0.5 left-0.5 h-3.5 w-3.5 rounded-full bg-ink transition-transform;
+  }
+
+  .switch[aria-checked="true"] {
+    @apply border-brand bg-brand hover:bg-brand-hover;
+  }
+
+  .switch[aria-checked="true"]::after {
+    @apply translate-x-4;
+  }
+
   .success {
     @apply border-ok/50 bg-ok/10 text-ok;
   }
