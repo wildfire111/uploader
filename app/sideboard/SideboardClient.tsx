@@ -216,15 +216,18 @@ export function SideboardClient({ landNames: landNameList }: { landNames: string
     const hiddenNow = next.hidden.filter((id) => !alreadyHidden.has(id)).length;
     setPlan(next);
     if (hiddenNow > 0) {
-      const text = `${hiddenNow} ${hiddenNow === 1 ? "land" : "lands"} automatically hidden`;
-      setMessage({ text });
-      clearTimeout(messageTimer.current);
-      // goes by itself, unless something else has been said in the meantime
-      messageTimer.current = setTimeout(
-        () => setMessage((current) => (current?.text === text ? null : current)),
-        UNDO_MS,
-      );
+      flash(`${hiddenNow} ${hiddenNow === 1 ? "land" : "lands"} automatically hidden`);
     }
+  }
+
+  // a notice that goes by itself, unless something else has been said in the meantime
+  function flash(text: string) {
+    setMessage({ text });
+    clearTimeout(messageTimer.current);
+    messageTimer.current = setTimeout(
+      () => setMessage((current) => (current?.text === text ? null : current)),
+      UNDO_MS,
+    );
   }
 
   // back to a blank page, as on the first visit
@@ -244,13 +247,15 @@ export function SideboardClient({ landNames: landNameList }: { landNames: string
     setMessage({ text: "Making the share link…" });
     const short = await shortenShareLinkAction(longUrl);
     const url = short.ok ? short.data : longUrl;
-    setShareUrl(url);
     // the full link still works when the shortener doesn't
     const suffix = short.ok ? "" : ` (${short.error} This is the full link.)`;
     try {
       await navigator.clipboard.writeText(url);
-      setMessage({ text: `Share link copied.${suffix}` });
+      setShareUrl(null);
+      flash(`Share link copied.${suffix}`);
     } catch {
+      // the link is shown only when it couldn't be copied
+      setShareUrl(url);
       setMessage({ text: `Copy the share link below.${suffix}` });
     }
   }
