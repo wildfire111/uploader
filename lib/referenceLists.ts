@@ -1,9 +1,17 @@
 import "server-only";
 import { collectAliases, parsePointsFile } from "./decklist/lists";
 import type { AliasList, PointsList } from "./decklist/types";
-import { getList, saveList, type StoredList } from "./queries/referenceLists";
+import {
+  getList,
+  getListTimes,
+  recordAttempt,
+  saveList,
+  type StoredList,
+} from "./queries/referenceLists";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+// a list whose refresh was tried this recently is left alone, on the assumption that it failed
+const RETRY_AFTER_MS = 60 * 60 * 1000;
 const FETCH_TIMEOUT_MS = 30_000;
 // scryfall asks for a descriptive User-Agent and at most 10 requests a second
 const SCRYFALL_HEADERS = {
@@ -81,24 +89,50 @@ function defineList<T>(spec: ListSpec<T>) {
     return { data, fetchedAt: new Date() };
   }
 
-  // fetches when there is no copy or it has expired; on failure keeps whatever is stored
-  async function refreshIfStale(): Promise<StoredList<T> | null> {
-    const stored = await get();
-    const fresh =
-      stored &&
-      (spec.maxAgeMs === null ||
-        Date.now() - stored.fetchedAt.getTime() < spec.maxAgeMs);
-    if (fresh) {
-      return stored;
-    }
+  // True when there is no copy or it has expired, unless a refresh was tried within the last hour:
+  // that attempt is assumed to have failed, so Scryfall or GitHub is not asked again yet.
+  async function needsRefresh(): Promise<boolean> {
     try {
-      return await fetchAndStore();
+      const { fetchedAt, lastAttemptAt } = await getListTimes(spec.name);
+      const stale =
+        fetchedAt === null ||
+        (spec.maxAgeMs !== null &&
+          Date.now() - fetchedAt.getTime() >= spec.maxAgeMs);
+      const triedRecently =
+        lastAttemptAt !== null &&
+        Date.now() - lastAttemptAt.getTime() < RETRY_AFTER_MS;
+      return stale && !triedRecently;
     } catch (error) {
       console.error(
-        `Could not refresh the ${spec.label}: ${describeError(error)}`,
+        `Could not check the ${spec.label}: ${describeError(error)}`,
       );
-      return stored;
+      return false;
     }
+  }
+
+  // visitors who arrive while a refresh is running wait on it rather than starting another
+  let refreshing: Promise<StoredList<T> | null> | null = null;
+
+  // fetches when there is no copy or it has expired; on failure keeps whatever is stored. The
+  // attempt is recorded before fetching, so a failure (or a crash) leaves it on record.
+  function refreshIfStale(): Promise<StoredList<T> | null> {
+    refreshing ??= (async () => {
+      try {
+        if (!(await needsRefresh())) {
+          return await get();
+        }
+        await recordAttempt(spec.name);
+        return await fetchAndStore();
+      } catch (error) {
+        console.error(
+          `Could not refresh the ${spec.label}: ${describeError(error)}`,
+        );
+        return await get();
+      } finally {
+        refreshing = null;
+      }
+    })();
+    return refreshing;
   }
 
   // the admin button: ignores age, waits, and throws instead of hiding a failure
@@ -117,6 +151,7 @@ function defineList<T>(spec: ListSpec<T>) {
     name: spec.name,
     label: spec.label,
     get,
+    needsRefresh,
     refreshIfStale,
     refreshNow,
     status,
@@ -307,7 +342,7 @@ const MIN_PLAUSIBLE_LANDS = 800;
 export const landsList = defineList<string[]>({
   name: "lands",
   label: "land list",
-  maxAgeMs: 7 * DAY_MS,
+  maxAgeMs: DAY_MS,
   fetchFresh: async () => {
     const names = new Set<string>();
     let url: string | undefined = LANDS_SEARCH_URL;
@@ -344,6 +379,15 @@ export const landsList = defineList<string[]>({
   },
   size: (names) => names.length,
 });
+
+// the names of those among `lists` that are stale and due a refresh, for the page to hand to
+// <RefreshingData>
+export async function staleListNames(
+  lists: { name: string; needsRefresh(): Promise<boolean> }[],
+): Promise<string[]> {
+  const due = await Promise.all(lists.map((list) => list.needsRefresh()));
+  return lists.filter((_, i) => due[i]).map((list) => list.name);
+}
 
 export const referenceLists = [
   pointsList,

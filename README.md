@@ -55,6 +55,7 @@ Schema files live in `db/schema/`, run in order, with no migration framework. Ap
 - `001_init.sql` — the app's own tables, in their final shape: `allowed_users`, `events`, `entries` and `moxfield_connection` (the encrypted Moxfield token, account name and User-Agent).
 - `002_better_auth.sql` — Better Auth's own tables (`user`, `session`, `account`, `verification`), generated with `npx @better-auth/cli generate`. The app's own code never queries these directly.
 - `003_reference_lists.sql` — one row per list the decklist checks use (the points list from GitHub, every card name and every Reserved List card from Scryfall). The app fetches them itself: the first time an event page is opened, then the points list and card names again once a day old. The Reserved List is fetched once and only refreshed by an admin at **Reference Data** (top bar), where the other two can also be refreshed sooner. Until the table exists, event pages still work but show no list-based warnings.
+- `004_reference_list_attempts.sql` — records when the app last tried to refresh each list, so one that is failing is not retried more than once an hour. **Run it before deploying this version**: the app reads the new column, and without it the lists read as missing.
 
 ## Adding volunteers
 

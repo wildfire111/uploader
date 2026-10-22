@@ -42,7 +42,7 @@ const SECTIONS = [
     list: landsList,
     title: "Lands",
     noun: "names",
-    about: "Every land, from Scryfall, used by the sideboard guide to hide lands by default. The guide page only reads the stored copy. It refreshes itself once it is a week old, when a logged-in user next opens an event page; click Refresh here to fill it for the first time or to update it sooner.",
+    about: "Every land, from Scryfall, used by the sideboard guide to hide lands by default. It refreshes itself once it is a day old, when someone opens the sideboard guide.",
   },
 ];
 
@@ -60,8 +60,9 @@ export default async function AdminReferenceDataPage() {
         <h1>Reference Data</h1>
       </div>
       <p>
-        Lists the decklist checks use. Each is fetched the first time an event page is opened. The
-        buttons wait while the list is fetched.
+        Lists the decklist checks use. Each is fetched when an event page is opened and it is missing or a day old (the Reserved List is
+        fetched once), behind a popup that holds the page until it is done. A refresh that fails is not
+        tried again for an hour. The buttons wait while the list is fetched.
       </p>
 
       {SECTIONS.map((section, i) => {

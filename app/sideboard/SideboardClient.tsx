@@ -4,6 +4,7 @@ import {
   useCallback,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
   type ChangeEvent,
@@ -26,7 +27,6 @@ import {
   type Matchup,
   type Plan,
 } from "./plan";
-import { useLandNames } from "./useLandNames";
 import { decodeShare, encodeShare, parsePlan, planToJson } from "./share";
 import styles from "./sideboard.module.css";
 
@@ -64,7 +64,7 @@ function isBlank(plan: Plan): boolean {
   return plan.deckText.trim() === "" && plan.matchups.length === 0;
 }
 
-export function SideboardClient() {
+export function SideboardClient({ landNames: landNameList }: { landNames: string[] | null }) {
   const [plan, setPlan] = useState<Plan>(createPlan);
   const [loaded, setLoaded] = useState(false);
   const [view, setView] = useState<View>("edit");
@@ -74,7 +74,7 @@ export function SideboardClient() {
   const [message, setMessage] = useState<Message>(null);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [hiddenOpen, setHiddenOpen] = useState(false);
-  const landNames = useLandNames();
+  const landNames = useMemo(() => (landNameList ? new Set(landNameList) : null), [landNameList]);
   const [undo, setUndo] = useState<{ matchup: Matchup; index: number } | null>(
     null,
   );

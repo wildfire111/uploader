@@ -1,8 +1,15 @@
 import { notFound } from "next/navigation";
-import { after } from "next/server";
 import { requireUser } from "@/lib/guards";
 import { getStoredMoxfieldUsername } from "@/lib/moxfieldAuth";
-import { cardAliasesList, cardNamesList, companionsList, pointsList, reservedList } from "@/lib/referenceLists";
+import { RefreshingData } from "@/app/RefreshingData";
+import {
+  cardAliasesList,
+  cardNamesList,
+  companionsList,
+  pointsList,
+  reservedList,
+  staleListNames,
+} from "@/lib/referenceLists";
 import { getEntriesForEvent } from "@/lib/queries/entries";
 import { getEventById } from "@/lib/queries/events";
 import { EventDetailClient } from "./EventDetailClient";
@@ -24,31 +31,30 @@ export default async function EventDetailPage({
 
   const publishAccount = user.isAdmin ? await getStoredMoxfieldUsername() : null;
 
-  // the stored lists now, with any refresh (or the very first fetch) left until the page has been sent
-  const [points, reserved, cardNames, aliases, companions] = await Promise.all([
+  // the stored lists; any that are stale are refreshed behind a popup, then the page reloads with them
+  const [points, reserved, cardNames, aliases, companions, stale] = await Promise.all([
     pointsList.get(),
     reservedList.get(),
     cardNamesList.get(),
     cardAliasesList.get(),
     companionsList.get(),
+    staleListNames([pointsList, reservedList, cardNamesList, cardAliasesList, companionsList]),
   ]);
-  after(pointsList.refreshIfStale);
-  after(reservedList.refreshIfStale);
-  after(cardNamesList.refreshIfStale);
-  after(cardAliasesList.refreshIfStale);
-  after(companionsList.refreshIfStale);
 
   return (
-    <EventDetailClient
-      event={event}
-      entries={entries}
-      currentUser={user}
-      publishAccount={publishAccount}
-      pointsList={points?.data ?? null}
-      reservedNames={reserved?.data ?? null}
-      aliasList={aliases?.data ?? null}
-      companionNames={companions?.data ?? null}
-      cardNamesVersion={cardNames?.fetchedAt.getTime() ?? null}
-    />
+    <>
+      <RefreshingData names={stale} />
+      <EventDetailClient
+        event={event}
+        entries={entries}
+        currentUser={user}
+        publishAccount={publishAccount}
+        pointsList={points?.data ?? null}
+        reservedNames={reserved?.data ?? null}
+        aliasList={aliases?.data ?? null}
+        companionNames={companions?.data ?? null}
+        cardNamesVersion={cardNames?.fetchedAt.getTime() ?? null}
+      />
+    </>
   );
 }

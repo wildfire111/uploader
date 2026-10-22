@@ -7,5 +7,5 @@ export async function GET() {
   if (!user) {
     return NextResponse.json({ error: "Not logged in." }, { status: 401 });
   }
-  return NextResponse.json({ points: (await pointsList.refreshIfStale())?.data ?? null });
+  return NextResponse.json({ points: (await pointsList.get())?.data ?? null });
 }
