@@ -219,11 +219,6 @@
 }
 
 .tintHover {
-  background: #dbe7ff;
-}
-
-/* a sideboard column is already blue, so its hover is green */
-.side .tintHover {
   background: #c6ecd8;
 }
 
@@ -260,11 +255,8 @@
   border-left: 1px solid #00000020;
 }
 
+/* a sideboard column is tinted blue, so its hover drops the tint to stay green */
 .row td.colHover {
-  background-color: #dbe7ff;
-}
-
-.row td.side.colHover {
   background-color: #c6ecd8;
   background-image: none;
 }
