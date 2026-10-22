@@ -246,6 +246,15 @@
   --rowbg: #e9e8e0;
 }
 
+.row td.col,
+.row td:last-child {
+  border-left: 1px solid #00000020;
+}
+
+.row td.colHover {
+  background-color: #dbe7ff;
+}
+
 .row td {
   background-color: var(--rowbg);
   height: max(34px, calc(var(--size) * 0.85));
@@ -408,7 +417,8 @@
   color: #111;
 }
 
-.label:hover {
+.label:hover,
+.labelHover {
   background: #dbe7ff;
 }
 
@@ -552,7 +562,8 @@
   cursor: default;
 }
 
-.printView .label:hover {
+.printView .label:hover,
+.printView .labelHover {
   background: none;
 }
 

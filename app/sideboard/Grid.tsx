@@ -32,6 +32,8 @@ type Props = {
 export function Grid({ plan, printView, onPlan, onDelete, onAdd, focusId, onFocused }: Props) {
   const [drag, setDrag] = useState<Drag>(null);
   const [over, setOver] = useState<string | null>(null);
+  // the column under the pointer, whether on one of its cells or on its slanted name
+  const [hoverCol, setHoverCol] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<{ matchup: Matchup; index: number } | null>(null);
   const nameInputs = useRef(new Map<string, HTMLInputElement>());
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -121,8 +123,9 @@ export function Grid({ plan, printView, onPlan, onDelete, onAdd, focusId, onFocu
         {column.board === "side" ? <span className={styles.tint} /> : null}
         <div className={styles.labelAnchor}>
           <div
-            className={styles.label}
+            className={`${styles.label} ${hoverCol === column.id ? styles.labelHover : ""}`}
             data-label
+            data-col={column.id}
             title={column.name}
             draggable={editable}
             onDragStart={(event) => startDrag(event, "col", column.id)}
@@ -138,7 +141,11 @@ export function Grid({ plan, printView, onPlan, onDelete, onAdd, focusId, onFocu
   function cell(matchup: Matchup, column: Column) {
     const state = matchup.cells[column.id];
     return (
-      <td key={column.id} className={`${styles.col} ${column.board === "side" ? styles.side : ""}`}>
+      <td
+        key={column.id}
+        data-col={column.id}
+        className={`${styles.col} ${column.board === "side" ? styles.side : ""} ${hoverCol === column.id ? styles.colHover : ""}`}
+      >
         {printView ? (
           <div className={`${styles.cell} ${state ? styles[state] : ""}`}>
             <span className={styles.box}>{state ? "✓" : ""}</span>
@@ -169,7 +176,14 @@ export function Grid({ plan, printView, onPlan, onDelete, onAdd, focusId, onFocu
       className={`${styles.scroller} ${printView ? styles.printView : ""}`}
       style={{ "--size": `${plan.size}px`, "--base": `${HEAD_BASE}px` } as CSSProperties}
     >
-      <table className={styles.grid}>
+      <table
+        className={styles.grid}
+        onMouseOver={(event) => {
+          const id = (event.target as HTMLElement).closest<HTMLElement>("[data-col]")?.dataset.col ?? null;
+          setHoverCol(id);
+        }}
+        onMouseLeave={() => setHoverCol(null)}
+      >
         <thead>
           <tr className={styles.headRow}>
             <th className={styles.stickyA}>
