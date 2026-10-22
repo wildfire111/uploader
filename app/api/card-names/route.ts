@@ -14,9 +14,8 @@ export async function GET(request: Request) {
 
   const asked = new URL(request.url).searchParams.get("v");
 
-  // no version means the page had no list yet: this is the one place a request waits on Scryfall,
-  // and only for the very first load
-  const stored = asked === null ? await cardNamesList.refreshIfStale() : await cardNamesList.get();
+  // the page refreshes a stale list behind its popup before it asks for this
+  const stored = await cardNamesList.get();
   if (!stored) {
     return NextResponse.json({ version: null }, { headers: { "Cache-Control": "no-store" } });
   }

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/guards";
 import { formatTimestamp } from "@/lib/formatDate";
-import { cardAliasesList, cardNamesList, companionsList, pointsList, reservedList } from "@/lib/referenceLists";
+import { cardAliasesList, cardNamesList, companionsList, landsList, pointsList, reservedList } from "@/lib/referenceLists";
 import { RefreshButton } from "./RefreshButton";
 
 // Shows what is stored right now, so it must never be served from a cache.
@@ -38,6 +38,12 @@ const SECTIONS = [
     noun: "cards",
     about: "Every card with the companion ability, from Scryfall. A companion in a decklist is checked against it, and a sideboard card on it can be marked as the companion. It refreshes itself once it is a day old.",
   },
+  {
+    list: landsList,
+    title: "Lands",
+    noun: "names",
+    about: "Every land, from Scryfall, used by the sideboard guide to hide lands by default. It refreshes itself once it is a day old, when someone opens the sideboard guide.",
+  },
 ];
 
 export default async function AdminReferenceDataPage() {
@@ -54,8 +60,9 @@ export default async function AdminReferenceDataPage() {
         <h1>Reference Data</h1>
       </div>
       <p>
-        Lists the decklist checks use. Each is fetched the first time an event page is opened. The
-        buttons wait while the list is fetched.
+        Lists the decklist checks use. Each is fetched when an event page is opened and it is missing or a day old (the Reserved List is
+        fetched once), behind a popup that holds the page until it is done. A refresh that fails is not
+        tried again for an hour. The buttons wait while the list is fetched.
       </p>
 
       {SECTIONS.map((section, i) => {

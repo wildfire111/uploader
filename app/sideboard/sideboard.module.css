@@ -1,0 +1,693 @@
+/* a light page of its own: it does not use the site's dark theme. These rules are not in a layer,
+   so they win over the base styles for buttons, inputs and tables in globals.css */
+
+.page {
+  /* the site sets a dark colour scheme, which would darken native controls and scrollbars */
+  color-scheme: light;
+  /* the header's height, which Grid sets from the longest label; the guide lines are as long as it is tall */
+  --head: 190px;
+  background: #f4f4f0;
+  color: #111;
+  min-height: calc(100vh - var(--site-header-height));
+  padding: 16px 24px 48px;
+}
+
+.page * {
+  box-sizing: border-box;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  margin-bottom: 12px;
+}
+
+.input,
+.textarea {
+  background: #fff;
+  color: #111;
+  border: 1px solid #888;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font: inherit;
+}
+
+.input:focus,
+.textarea:focus {
+  border-color: #2563eb;
+  outline: 2px solid #93b4f5;
+  box-shadow: none;
+}
+
+.textarea {
+  width: 100%;
+  min-height: 12em;
+  resize: vertical;
+  font-family: ui-monospace, monospace;
+  font-size: 0.9rem;
+}
+
+.btn {
+  background: #fff;
+  color: #111;
+  border: 1px solid #888;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.btn:hover {
+  background: #e6e6e0;
+}
+
+.btnPrimary {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+  color: #fff;
+}
+
+.btnPrimary:hover {
+  background: #1e40af;
+}
+
+.sizeLabel {
+  margin-left: auto;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+}
+
+.sizeLabel input {
+  padding: 0;
+  border: 0;
+  background: none;
+  accent-color: #1d4ed8;
+}
+
+.deck {
+  margin-bottom: 12px;
+}
+
+.deckActions {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.notice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #fff;
+  border: 1px solid #888;
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+}
+
+/* a notice that floats over the site header, so showing it moves nothing */
+.toast {
+  position: fixed;
+  z-index: 60;
+  top: calc(var(--site-header-height) / 2);
+  left: 50%;
+  transform: translate(-50%, -50%);
+  max-width: min(90vw, 640px);
+  margin: 0;
+  box-shadow: 0 4px 14px #0003;
+}
+
+/* the ones with a button or a link to copy sit at the foot of the window instead, out of the header */
+.toastBottom {
+  top: auto;
+  bottom: 24px;
+  transform: translateX(-50%);
+}
+
+@media print {
+  .toast {
+    display: none;
+  }
+}
+
+.error {
+  border-color: #b91c1c;
+  color: #b91c1c;
+}
+
+.empty {
+  color: #555;
+  margin: 24px 0;
+}
+
+.radios {
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+}
+
+.radios label {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+
+.radios input {
+  padding: 0;
+  background: transparent;
+  border: 0;
+  accent-color: #1d4ed8;
+}
+
+/* ---- the grid ---- */
+
+.scroller {
+  overflow: auto;
+  max-height: calc(100vh - var(--site-header-height) - 24px);
+  background: #fff;
+  border: 1px solid #999;
+}
+
+.grid {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: max-content;
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.grid th,
+.grid td {
+  padding: 0;
+  border: 0;
+  text-align: center;
+  white-space: nowrap;
+  color: #111;
+}
+
+.grid th {
+  font-weight: 600;
+}
+
+/* the header band sticks as a whole; its cells stay unstacked so that a label, which runs over the
+   columns to its right, sits above their cells and can be dragged */
+.grid thead {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: #fff;
+}
+
+.headRow th {
+  position: relative;
+  height: var(--head);
+  vertical-align: bottom;
+  overflow: visible;
+}
+
+.headRow th.tail {
+  width: 170px;
+  min-width: 170px;
+}
+
+.col {
+  width: var(--size);
+  min-width: var(--size);
+  max-width: var(--size);
+  border-left: 1px solid #c4c4bc;
+}
+
+.side {
+  background-image: linear-gradient(#2563eb1f, #2563eb1f);
+}
+
+/* in the header the sideboard tint is a band that slopes with the labels, between the guide lines on
+   either side of the column, over a short strip at the foot; the cells below keep a plain tint */
+.headRow th.side {
+  background-image: none;
+}
+
+.tint {
+  position: absolute;
+  z-index: 0;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: var(--base);
+  background: #e4ecfd;
+}
+
+.tintHover {
+  background: #fcd4aa;
+}
+
+.tint::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 100%;
+  width: 100%;
+  height: calc(var(--head) - var(--base));
+  background: inherit;
+  transform-origin: 0 100%;
+  transform: skewX(-45deg);
+}
+
+.divider {
+  width: 10px;
+  min-width: 10px;
+  padding: 0;
+  background: #111 !important;
+  background-image: none !important;
+}
+
+.row {
+  --rowbg: #fff;
+}
+
+.row:nth-child(even) {
+  --rowbg: #e9e8e0;
+}
+
+.row:hover {
+  --rowbg: #fcd4aa;
+}
+
+.row:hover td.side {
+  background-image: none;
+}
+
+.row td.col,
+.row td:last-child {
+  border-left: 1px solid #00000020;
+}
+
+/* a sideboard column is tinted blue, so its hover drops the tint to stay green */
+.row td.colHover {
+  background-color: #fcd4aa;
+  background-image: none;
+}
+
+.row td {
+  background-color: var(--rowbg);
+  height: max(34px, calc(var(--size) * 0.85));
+  border-top: 1px solid #c4c4bc;
+}
+
+.stickyA {
+  position: sticky;
+  z-index: 2;
+  left: 0;
+  /* as narrow as the longest name: in a table, a width of 1px with no wrapping shrinks to the content */
+  width: 1px;
+  text-align: left !important;
+  border-right: 2px solid #111;
+}
+
+.headRow th.stickyA {
+  z-index: 5;
+  background: #fff;
+  vertical-align: bottom;
+  padding: 0 10px 8px;
+  font-size: 1rem;
+}
+
+.headA {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.headRow th.divider {
+  background: none !important;
+}
+
+.rowEdit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px 0 6px;
+}
+
+.handle {
+  cursor: grab;
+  color: #555;
+  font-size: 1.1rem;
+  user-select: none;
+  padding: 0 2px;
+}
+
+/* the text in ::after is a copy of the name, which sets how wide the input is */
+.sizer {
+  display: inline-grid;
+  min-width: 5ch;
+}
+
+.sizer::after,
+.matchupName {
+  grid-area: 1 / 1;
+  font: inherit;
+  font-weight: 700;
+  font-size: 1.05rem;
+  padding: 4px 6px;
+  border: 1px solid transparent;
+}
+
+.sizer::after {
+  content: attr(data-value) " ";
+  visibility: hidden;
+  white-space: pre;
+}
+
+.matchupName {
+  width: 100%;
+  min-width: 0;
+  background: transparent;
+  border-radius: 4px;
+  color: #111;
+}
+
+.matchupName:hover,
+.matchupName:focus {
+  background: #fff;
+  border-color: #888;
+  outline: none;
+  box-shadow: none;
+}
+
+.matchupLabel {
+  font-size: 1.05rem;
+  padding: 4px 6px;
+}
+
+.iconBtn {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  line-height: 1;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: #555;
+  cursor: pointer;
+}
+
+.iconBtn:hover {
+  background: #d9d9d0;
+  color: #111;
+}
+
+.count {
+  margin-left: auto;
+  min-width: 56px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.unbalanced {
+  background: #fecaca;
+  color: #7f1d1d;
+}
+
+/* sits under the last row, and stays in view at the bottom and left of the grid when there are many */
+.addRow {
+  position: sticky;
+  left: 0;
+  bottom: 0;
+  z-index: 4;
+  width: max-content;
+  padding: 10px;
+}
+
+/* the label runs up and to the right from the bottom of its column */
+.labelAnchor {
+  position: absolute;
+  z-index: 1;
+  left: 82%;
+  bottom: var(--base);
+  width: 0;
+  height: 0;
+}
+
+.label {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  transform-origin: 0 100%;
+  transform: rotate(-45deg);
+  max-width: 230px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: clamp(12px, calc(var(--size) * 0.36), 19px);
+  font-weight: 600;
+  line-height: 1.25;
+  padding: 0 4px;
+  cursor: grab;
+  color: #111;
+}
+
+.label:hover {
+  background: #dbe7ff;
+}
+
+/* appears only while a maindeck column is being dragged, so it takes no room in the grid */
+.hideZone {
+  position: fixed;
+  z-index: 60;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%);
+  padding: 22px 56px;
+  border: 3px dashed #b91c1c;
+  border-radius: 10px;
+  background: #fee2e2;
+  color: #7f1d1d;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.hideZoneOver {
+  border-style: solid;
+  background: #fca5a5;
+}
+
+/* a column's left edge: a line up the header that turns to run at 45 degrees, as the labels do,
+   so that the eye can follow a name down to its column */
+.headRow th.edge {
+  border-left: 0;
+}
+
+.edge::before,
+.edge::after {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  left: 0;
+  background: #9a9a90;
+}
+
+.edge::before {
+  bottom: 0;
+  width: 1px;
+  height: var(--base);
+}
+
+.edge::after {
+  bottom: var(--base);
+  width: calc((var(--head) - var(--base)) * 1.4143);
+  height: 1px;
+  transform-origin: 0 100%;
+  transform: rotate(-45deg);
+}
+
+.dropHere {
+  box-shadow: inset 4px 0 0 #1d4ed8;
+}
+
+.dropRow td {
+  box-shadow: inset 0 4px 0 #1d4ed8;
+}
+
+/* a grid centres the box in both views; in print it is a div, where an auto margin wouldn't centre it
+   vertically and the box sat at the top of its row */
+.cell {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  min-height: max(34px, calc(var(--size) * 0.85));
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.cell:hover {
+  background: #2563eb22;
+}
+
+.box {
+  display: grid;
+  place-items: center;
+  width: calc(var(--size) * 0.62);
+  height: calc(var(--size) * 0.62);
+  min-width: 18px;
+  min-height: 18px;
+  margin: auto;
+  border: 2px solid #555;
+  border-radius: 4px;
+  background: #fff;
+  color: transparent;
+  font-size: calc(var(--size) * 0.42);
+  font-weight: 800;
+  line-height: 1;
+}
+
+.in .box {
+  background: #111;
+  border-color: #111;
+  color: #fff;
+}
+
+.maybe .box {
+  background: #f59e0b;
+  border-color: #92400e;
+  color: #111;
+}
+
+/* ---- print view and paper ---- */
+
+/* the printable area of A4 landscape with 10mm margins (277mm by 190mm), a hair under so it can't
+   spill onto a second page */
+.paper {
+  width: 1046px;
+  height: 716px;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid #999;
+  margin: 0 auto;
+}
+
+.paperInner {
+  transform-origin: 0 0;
+  transform: scale(var(--scale, 1));
+  width: max-content;
+  padding: 4px 0 0;
+}
+
+.printView .scroller {
+  max-height: none;
+  overflow: visible;
+  border: 0;
+}
+
+.printView .grid thead {
+  position: static;
+}
+
+.printView .stickyA,
+.printView .headRow th.stickyA {
+  position: static;
+}
+
+.printView .label {
+  cursor: default;
+}
+
+.printView .label:hover {
+  background: none;
+}
+
+.printView .cell {
+  cursor: default;
+}
+
+.printView .cell:hover {
+  background: none;
+}
+
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
+
+  :global(body > header) {
+    display: none;
+  }
+
+  :global(body) {
+    background: #fff;
+  }
+
+  .page {
+    background: #fff;
+    padding: 0;
+    min-height: 0;
+  }
+
+  .noPrint {
+    display: none !important;
+  }
+
+  .paper {
+    border: 0;
+    margin: 0;
+  }
+
+  .page * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+
+.dialog {
+  border: 1px solid #888;
+  border-radius: 8px;
+  padding: 16px;
+  width: min(420px, 92vw);
+  max-height: 80vh;
+}
+
+.dialog::backdrop {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.dialogHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.dialogHead strong {
+  flex: 1;
+}
+
+.hiddenList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  max-height: calc(80vh - 90px);
+}
+
+.hiddenList li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0;
+  border-bottom: 1px solid #eee;
+}

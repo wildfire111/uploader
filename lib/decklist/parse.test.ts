@@ -49,11 +49,36 @@ describe("parseDecklist", () => {
     expect(lines.map((line) => line.board)).toEqual(["main", "main", "main"]);
   });
 
-  it("ignores blank lines when splitting the sideboard", () => {
-    const lines = parseDecklist("1 Flash\n1 Black Lotus\n\n1 Lightning Bolt");
-    expect(lines.every((line) => line.board === "main")).toBe(true);
+  it("ignores blank lines when there is a sideboard line", () => {
     const spaced = parseDecklist("1 Flash\n\n1 Black Lotus\n\nSideboard\n\n1 Lightning Bolt");
     expect(spaced.map((line) => line.board)).toEqual(["main", "main", "side"]);
+  });
+
+  describe("without a sideboard line", () => {
+    it("starts the sideboard at the first blank line after a maindeck card", () => {
+      const lines = parseDecklist("1 Flash\n1 Black Lotus\n\n1 Lightning Bolt\n\n1 Island");
+      expect(lines.map((line) => line.board)).toEqual(["main", "main", "side", "side"]);
+    });
+
+    it("ignores blank lines before the first card", () => {
+      const lines = parseDecklist("\n\n1 Flash\n\n1 Lightning Bolt");
+      expect(lines.map((line) => line.board)).toEqual(["main", "side"]);
+    });
+
+    it("does not count a companion block above the deck", () => {
+      const lines = parseDecklist("Companion\n1 Lurrus of the Dream-Den\n\n1 Flash\n1 Black Lotus\n\n1 Lightning Bolt");
+      expect(lines.map((line) => [line.name, line.board])).toEqual([
+        ["Lurrus of the Dream-Den", "side"],
+        ["Flash", "main"],
+        ["Black Lotus", "main"],
+        ["Lightning Bolt", "side"],
+      ]);
+    });
+
+    it("leaves a deck with no blank line as all maindeck", () => {
+      const lines = parseDecklist("1 Flash\n1 Black Lotus");
+      expect(lines.every((line) => line.board === "main")).toBe(true);
+    });
   });
 
   it("strips * points markers from names", () => {
