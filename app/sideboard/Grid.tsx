@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type DragEvent } from "react";
+import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
 import { countMatchup, printColumns } from "./counts";
 import type { Column } from "./deck";
 import { cycleCell, hideColumn, moveColumn, moveMatchup, renameMatchup, type Matchup, type Plan } from "./plan";
@@ -31,6 +32,7 @@ type Props = {
 export function Grid({ plan, printView, onPlan, onDelete, onAdd, focusId, onFocused }: Props) {
   const [drag, setDrag] = useState<Drag>(null);
   const [over, setOver] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState<{ matchup: Matchup; index: number } | null>(null);
   const nameInputs = useRef(new Map<string, HTMLInputElement>());
   const scrollerRef = useRef<HTMLDivElement>(null);
 
@@ -272,8 +274,10 @@ export function Grid({ plan, printView, onPlan, onDelete, onAdd, focusId, onFocu
                         title="Delete this matchup"
                         onClick={() => {
                           // a row that was never named has nothing worth asking about
-                          if (matchup.label === "" || window.confirm(`Delete “${matchup.label}”?`)) {
+                          if (matchup.label === "") {
                             onDelete(matchup, index);
+                          } else {
+                            setConfirming({ matchup, index });
                           }
                         }}
                       >
@@ -311,6 +315,16 @@ export function Grid({ plan, printView, onPlan, onDelete, onAdd, focusId, onFocu
           Drop here to hide
         </div>
       ) : null}
+      <ConfirmDeleteDialog
+        name={confirming?.matchup.label ?? null}
+        onConfirm={() => {
+          if (confirming) {
+            onDelete(confirming.matchup, confirming.index);
+          }
+          setConfirming(null);
+        }}
+        onCancel={() => setConfirming(null)}
+      />
       {printView ? null : (
         <div className={styles.addRow}>
           <button type="button" className={`${styles.btn} ${styles.btnPrimary}`} onClick={onAdd}>
