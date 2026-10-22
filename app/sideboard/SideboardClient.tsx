@@ -103,10 +103,7 @@ export function SideboardClient({ landNames: landNameList }: { landNames: string
           window.location.hash.slice(SHARE_PREFIX.length),
         );
         if (!result.ok) {
-          setMessage({
-            text: "That share link doesn't hold a plan.",
-            error: true,
-          });
+          flash("That share link doesn't hold a plan.", true);
         } else if (
           !stored ||
           isBlank(stored) ||
@@ -221,8 +218,8 @@ export function SideboardClient({ landNames: landNameList }: { landNames: string
   }
 
   // a notice that goes by itself, unless something else has been said in the meantime
-  function flash(text: string) {
-    setMessage({ text });
+  function flash(text: string, error = false) {
+    setMessage({ text, error });
     clearTimeout(messageTimer.current);
     messageTimer.current = setTimeout(
       () => setMessage((current) => (current?.text === text ? null : current)),
@@ -244,7 +241,7 @@ export function SideboardClient({ landNames: landNameList }: { landNames: string
 
   async function share() {
     const longUrl = `${window.location.origin}${window.location.pathname}${SHARE_PREFIX}${await encodeShare(plan)}`;
-    setMessage({ text: "Making the share link…" });
+    flash("Making the share link…");
     const short = await shortenShareLinkAction(longUrl);
     const url = short.ok ? short.data : longUrl;
     // the full link still works when the shortener doesn't
@@ -256,7 +253,7 @@ export function SideboardClient({ landNames: landNameList }: { landNames: string
     } catch {
       // the link is shown only when it couldn't be copied
       setShareUrl(url);
-      setMessage({ text: `Copy the share link below.${suffix}` });
+      flash(`Copy the share link below.${suffix}`);
     }
   }
 
@@ -280,9 +277,9 @@ export function SideboardClient({ landNames: landNameList }: { landNames: string
     const result = parsePlan(await file.text());
     if (result.ok) {
       replacePlan(result.plan);
-      setMessage({ text: "Plan imported." });
+      flash("Plan imported.");
     } else {
-      setMessage({ text: result.error, error: true });
+      flash(result.error, true);
     }
   }
 
@@ -358,13 +355,6 @@ export function SideboardClient({ landNames: landNameList }: { landNames: string
           role="status"
         >
           {message.text}
-          <button
-            type="button"
-            className={styles.btn}
-            onClick={() => setMessage(null)}
-          >
-            Dismiss
-          </button>
         </div>
       ) : null}
       {shareUrl ? (
