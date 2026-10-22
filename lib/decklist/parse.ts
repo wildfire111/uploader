@@ -28,18 +28,25 @@ export type ScannedLine = ParsedLine & {
 // anything else is the marker saying that the next line is the companion
 export function scanDecklist(raw: string, isCardName?: (name: string) => boolean): ScannedLine[] {
   const lines: ScannedLine[] = [];
+  const rawLines = raw.split(/\r?\n/);
+  // without a sideboard line, the first blank line after the maindeck starts the sideboard
+  const splitOnBlank = !rawLines.some((line) => isSideboardLine(line.trim()));
   let inSideboard = false;
   let companionNext = false;
   let markerIndex = -1;
+  let mainSeen = false;
 
-  for (const [lineIndex, rawLine] of raw.split(/\r?\n/).entries()) {
+  for (const [lineIndex, rawLine] of rawLines.entries()) {
     const line = rawLine.trim();
     if (line === "") {
       // a marker with nothing after it is just noise from the user's deck software
+      if (splitOnBlank && mainSeen && !companionNext) {
+        inSideboard = true;
+      }
       companionNext = false;
       continue;
     }
-    if (SIDEBOARD_LINE.test(line) || SIDEBOARD_ABBREVIATION.test(line)) {
+    if (isSideboardLine(line)) {
       inSideboard = true;
       companionNext = false;
       continue;
@@ -78,11 +85,16 @@ export function scanDecklist(raw: string, isCardName?: (name: string) => boolean
       companionNext = false;
     } else {
       const board = prefixed || inSideboard ? "side" : "main";
+      mainSeen ||= board === "main";
       lines.push({ name, quantity, board, quantityText, printing, lineIndex });
     }
   }
 
   return withoutListedCompanions(lines);
+}
+
+function isSideboardLine(line: string): boolean {
+  return SIDEBOARD_LINE.test(line) || SIDEBOARD_ABBREVIATION.test(line);
 }
 
 export function parseDecklist(raw: string, isCardName?: (name: string) => boolean): ParsedLine[] {

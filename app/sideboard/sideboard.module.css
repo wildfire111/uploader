@@ -1,0 +1,572 @@
+/* a light page of its own: it does not use the site's dark theme. These rules are not in a layer,
+   so they win over the base styles for buttons, inputs and tables in globals.css */
+
+.page {
+  /* the site sets a dark colour scheme, which would darken native controls and scrollbars */
+  color-scheme: light;
+  --head: 200px;
+  background: #f4f4f0;
+  color: #111;
+  min-height: calc(100vh - var(--site-header-height));
+  padding: 16px 24px 48px;
+}
+
+.page * {
+  box-sizing: border-box;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  margin-bottom: 12px;
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  width: min(100%, 520px);
+}
+
+.input,
+.textarea {
+  background: #fff;
+  color: #111;
+  border: 1px solid #888;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font: inherit;
+}
+
+.input:focus,
+.textarea:focus {
+  border-color: #2563eb;
+  outline: 2px solid #93b4f5;
+  box-shadow: none;
+}
+
+.textarea {
+  width: 100%;
+  min-height: 12em;
+  resize: vertical;
+  font-family: ui-monospace, monospace;
+  font-size: 0.9rem;
+}
+
+.btn {
+  background: #fff;
+  color: #111;
+  border: 1px solid #888;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.btn:hover {
+  background: #e6e6e0;
+}
+
+.btnPrimary {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+  color: #fff;
+}
+
+.btnPrimary:hover {
+  background: #1e40af;
+}
+
+.sizeLabel {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+}
+
+.sizeLabel input {
+  padding: 0;
+  border: 0;
+  background: none;
+  accent-color: #1d4ed8;
+}
+
+.deck {
+  margin-bottom: 12px;
+}
+
+.deck summary {
+  cursor: pointer;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.deckActions {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.notice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #fff;
+  border: 1px solid #888;
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+}
+
+.error {
+  border-color: #b91c1c;
+  color: #b91c1c;
+}
+
+.empty {
+  color: #555;
+  margin: 24px 0;
+}
+
+.radios {
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+}
+
+.radios label {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+
+.radios input {
+  padding: 0;
+  background: transparent;
+  border: 0;
+  accent-color: #1d4ed8;
+}
+
+/* ---- the grid ---- */
+
+.scroller {
+  overflow: auto;
+  max-height: calc(100vh - var(--site-header-height) - 24px);
+  background: #fff;
+  border: 1px solid #999;
+}
+
+.grid {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: max-content;
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.grid th,
+.grid td {
+  padding: 0;
+  border: 0;
+  text-align: center;
+  white-space: nowrap;
+  color: #111;
+}
+
+.grid th {
+  font-weight: 600;
+}
+
+/* the header band sticks as a whole; its cells stay unstacked so that a label, which runs over the
+   columns to its right, sits above their cells and can be dragged */
+.grid thead {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: #fff;
+}
+
+.headRow th {
+  position: relative;
+  height: var(--head);
+  vertical-align: bottom;
+  overflow: visible;
+}
+
+.headRow th.tail {
+  width: 170px;
+  min-width: 170px;
+}
+
+.col {
+  width: var(--size);
+  min-width: var(--size);
+  max-width: var(--size);
+  border-left: 1px solid #c4c4bc;
+}
+
+.side {
+  background-image: linear-gradient(#2563eb1f, #2563eb1f);
+}
+
+.divider {
+  width: 10px;
+  min-width: 10px;
+  padding: 0;
+  background: #111 !important;
+  background-image: none !important;
+}
+
+.row {
+  --rowbg: #fff;
+}
+
+.row:nth-child(even) {
+  --rowbg: #e9e8e0;
+}
+
+.row td {
+  background-color: var(--rowbg);
+  height: max(34px, calc(var(--size) * 0.85));
+  border-top: 1px solid #c4c4bc;
+}
+
+.stickyA,
+.stickyB {
+  position: sticky;
+  z-index: 2;
+}
+
+.stickyA {
+  left: 0;
+  width: 380px;
+  min-width: 380px;
+  max-width: 380px;
+  text-align: left !important;
+}
+
+.stickyB {
+  left: 380px;
+  width: 96px;
+  min-width: 96px;
+  max-width: 96px;
+  border-right: 2px solid #111;
+}
+
+.headRow th.stickyA,
+.headRow th.stickyB {
+  position: sticky;
+  z-index: 5;
+  background: #fff;
+  vertical-align: bottom;
+  padding: 0 8px 8px;
+  font-size: 1rem;
+}
+
+.headRow th.divider {
+  background: none !important;
+}
+
+.rowEdit {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 6px;
+}
+
+.handle {
+  cursor: grab;
+  color: #555;
+  font-size: 1.1rem;
+  user-select: none;
+  padding: 0 2px;
+}
+
+.matchupName {
+  flex: 1;
+  min-width: 0;
+  font-weight: 700;
+  font-size: 1.05rem;
+  padding: 4px 6px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: #111;
+  font-family: inherit;
+}
+
+.matchupNote {
+  width: 96px;
+  font-size: 0.8rem;
+  padding: 4px 6px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: #333;
+  font-family: inherit;
+}
+
+.matchupName:hover,
+.matchupNote:hover,
+.matchupName:focus,
+.matchupNote:focus {
+  background: #fff;
+  border-color: #888;
+  outline: none;
+  box-shadow: none;
+}
+
+.matchupText {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 0 8px;
+}
+
+.matchupText b {
+  font-size: 1.05rem;
+}
+
+.matchupText i {
+  font-size: 0.8rem;
+  color: #333;
+  font-style: normal;
+}
+
+.iconBtn {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  line-height: 1;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: #555;
+  cursor: pointer;
+}
+
+.iconBtn:hover {
+  background: #d9d9d0;
+  color: #111;
+}
+
+.count {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.unbalanced {
+  background-color: #fecaca !important;
+  color: #7f1d1d;
+}
+
+/* the label runs up and to the right from the bottom of its column */
+.labelAnchor {
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  bottom: 34px;
+  width: 0;
+  height: 0;
+}
+
+.label {
+  position: absolute;
+  left: -0.4em;
+  bottom: 0;
+  transform-origin: 0 100%;
+  transform: rotate(-45deg);
+  max-width: 230px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: clamp(12px, calc(var(--size) * 0.36), 19px);
+  font-weight: 600;
+  line-height: 1.25;
+  padding: 0 4px;
+  cursor: grab;
+  color: #111;
+}
+
+.label:hover {
+  background: #dbe7ff;
+}
+
+.hideBtn {
+  position: absolute;
+  z-index: 1;
+  bottom: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  line-height: 1;
+  background: #fff;
+  border: 1px solid #999;
+  border-radius: 50%;
+  color: #444;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.hideBtn:hover {
+  background: #fecaca;
+  color: #7f1d1d;
+}
+
+.dropHere {
+  box-shadow: inset 4px 0 0 #1d4ed8;
+}
+
+.dropRow td {
+  box-shadow: inset 0 4px 0 #1d4ed8;
+}
+
+.cell {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: max(34px, calc(var(--size) * 0.85));
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.cell:hover {
+  background: #2563eb22;
+}
+
+.box {
+  display: grid;
+  place-items: center;
+  width: calc(var(--size) * 0.62);
+  height: calc(var(--size) * 0.62);
+  min-width: 18px;
+  min-height: 18px;
+  margin: auto;
+  border: 2px solid #555;
+  border-radius: 4px;
+  background: #fff;
+  color: transparent;
+  font-size: calc(var(--size) * 0.42);
+  font-weight: 800;
+  line-height: 1;
+}
+
+.in .box {
+  background: #111;
+  border-color: #111;
+  color: #fff;
+}
+
+.maybe .box {
+  background: #f59e0b;
+  border-color: #92400e;
+  color: #111;
+}
+
+/* ---- print view and paper ---- */
+
+.paper {
+  width: 960px;
+  height: 690px;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid #999;
+  margin: 0 auto;
+}
+
+.paperInner {
+  transform-origin: 0 0;
+  transform: scale(var(--scale, 1));
+  width: max-content;
+  padding: 4px 0 0;
+}
+
+.paperTitle {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin: 0 0 8px 8px;
+  color: #111;
+}
+
+.printView .scroller {
+  max-height: none;
+  overflow: visible;
+  border: 0;
+}
+
+.printView .grid thead {
+  position: static;
+}
+
+.printView .stickyA,
+.printView .stickyB,
+.printView .headRow th.stickyA,
+.printView .headRow th.stickyB {
+  position: static;
+}
+
+/* no inputs on paper, so the matchup column can be as wide as its text */
+.printView .stickyA {
+  width: 230px;
+  min-width: 230px;
+  max-width: 230px;
+}
+
+.printView .label {
+  cursor: default;
+}
+
+.printView .label:hover {
+  background: none;
+}
+
+.printView .cell {
+  cursor: default;
+}
+
+.printView .cell:hover {
+  background: none;
+}
+
+@media print {
+  @page {
+    size: landscape;
+    margin: 10mm;
+  }
+
+  :global(body > header) {
+    display: none;
+  }
+
+  :global(body) {
+    background: #fff;
+  }
+
+  .page {
+    background: #fff;
+    padding: 0;
+    min-height: 0;
+  }
+
+  .noPrint {
+    display: none !important;
+  }
+
+  .paper {
+    border: 0;
+    margin: 0;
+  }
+
+  .page * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

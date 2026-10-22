@@ -32,7 +32,7 @@ describe("prepareForMoxfield", () => {
   );
 
   it("drops blank lines and headers that Moxfield wouldn't understand", () => {
-    expect(prepareForMoxfield("Deck\n\n1 Flash\n\n\n1 Island", { aliases: null }).importText).toBe("1 Flash\n1 Island");
+    expect(prepareForMoxfield("\n\nDeck\n\n\n1 Flash\n1 Island\n\n", { aliases: null }).importText).toBe("1 Flash\n1 Island");
   });
 
   it("keeps the companion in the sideboard text, and returns its real name to mark it with", () => {
