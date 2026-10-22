@@ -222,6 +222,11 @@
   background: #dbe7ff;
 }
 
+/* a sideboard column is already blue, so its hover is green */
+.side .tintHover {
+  background: #c6ecd8;
+}
+
 .tint::before {
   content: "";
   position: absolute;
@@ -257,6 +262,11 @@
 
 .row td.colHover {
   background-color: #dbe7ff;
+}
+
+.row td.side.colHover {
+  background-color: #c6ecd8;
+  background-image: none;
 }
 
 .row td {
