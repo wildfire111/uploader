@@ -42,7 +42,7 @@ const SECTIONS = [
     list: landsList,
     title: "Lands",
     noun: "names",
-    about: "Every land, from Scryfall, used by the sideboard guide to hide lands by default. The guide page only reads the stored copy, so click Refresh here once, and again now and then as new lands are printed.",
+    about: "Every land, from Scryfall, used by the sideboard guide to hide lands by default. The guide page only reads the stored copy. It refreshes itself once it is a week old, when a logged-in user next opens an event page; click Refresh here to fill it for the first time or to update it sooner.",
   },
 ];
 

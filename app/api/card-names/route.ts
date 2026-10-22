@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { cardNamesList } from "@/lib/referenceLists";
+import { cardNamesList, landsList } from "@/lib/referenceLists";
 
 const FOREVER = "private, max-age=31536000, immutable";
 
@@ -11,6 +11,10 @@ export async function GET(request: Request) {
   if (!user) {
     return NextResponse.json({ error: "Not logged in." }, { status: 401 });
   }
+
+  // the sideboard guide is public and only reads the land list, so the check for a stale one is
+  // made here, by a logged-in user, after the reply has gone
+  after(() => landsList.refreshIfStale());
 
   const asked = new URL(request.url).searchParams.get("v");
 
