@@ -74,6 +74,7 @@
 }
 
 .sizeLabel {
+  margin-left: auto;
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -90,12 +91,6 @@
 
 .deck {
   margin-bottom: 12px;
-}
-
-.deck summary {
-  cursor: pointer;
-  font-weight: 600;
-  margin-bottom: 8px;
 }
 
 .deckActions {

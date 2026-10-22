@@ -73,6 +73,7 @@ export function SideboardClient({ landNames: landNameList }: { landNames: string
   const [focusId, setFocusId] = useState<string | null>(null);
   const [message, setMessage] = useState<Message>(null);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [deckOpen, setDeckOpen] = useState<boolean | null>(null);
   const [hiddenOpen, setHiddenOpen] = useState(false);
   const landNames = useMemo(() => (landNameList ? new Set(landNameList) : null), [landNameList]);
   const [undo, setUndo] = useState<{ matchup: Matchup; index: number } | null>(
@@ -238,6 +239,8 @@ export function SideboardClient({ landNames: landNameList }: { landNames: string
   }
 
   const hasColumns = plan.columns.length > 0;
+  // open on its own until there is a grid, unless the button has been used
+  const showDeck = deckOpen ?? !hasColumns;
 
   if (view === "print") {
     return (
@@ -301,36 +304,6 @@ export function SideboardClient({ landNames: landNameList }: { landNames: string
 
   return (
     <div className={styles.page}>
-      <details className={styles.deck} open={!hasColumns}>
-        <summary>Decklist</summary>
-        <textarea
-          className={styles.textarea}
-          value={draft}
-          placeholder={
-            "1 Lightning Bolt\n...\n\nSideboard\n1 Toxic Deluge\n..."
-          }
-          aria-label="Decklist"
-          onChange={(event) => setDraft(event.target.value)}
-        />
-        <div className={styles.deckActions}>
-          <button
-            type="button"
-            className={`${styles.btn} ${styles.btnPrimary}`}
-            onClick={() =>
-              setPlan((current) =>
-                setDecklist(
-                  current,
-                  draft,
-                  (name) => isBasicLand(name) || isListedLand(landNames, name),
-                ),
-              )
-            }
-          >
-            {hasColumns ? "Update decklist" : "Build grid"}
-          </button>
-        </div>
-      </details>
-
       {message ? (
         <div
           className={`${styles.notice} ${message.error ? styles.error : ""}`}
@@ -374,18 +347,14 @@ export function SideboardClient({ landNames: landNameList }: { landNames: string
       ) : null}
 
       <div className={styles.toolbar}>
-        <label className={styles.sizeLabel}>
-          Column size
-          <input
-            type="range"
-            min={MIN_SIZE}
-            max={MAX_SIZE}
-            value={plan.size}
-            onChange={(event) =>
-              setPlan((current) => setSize(current, Number(event.target.value)))
-            }
-          />
-        </label>
+        <button
+          type="button"
+          className={styles.btn}
+          aria-expanded={showDeck}
+          onClick={() => setDeckOpen(!showDeck)}
+        >
+          {showDeck ? "Hide decklist" : "Decklist"}
+        </button>
         {plan.hidden.length > 0 ? (
           <button
             type="button"
@@ -422,7 +391,50 @@ export function SideboardClient({ landNames: landNameList }: { landNames: string
           hidden
           onChange={importJson}
         />
+        <label className={styles.sizeLabel}>
+          Column size
+          <input
+            type="range"
+            min={MIN_SIZE}
+            max={MAX_SIZE}
+            value={plan.size}
+            onChange={(event) =>
+              setPlan((current) => setSize(current, Number(event.target.value)))
+            }
+          />
+        </label>
       </div>
+
+      {showDeck ? (
+        <div className={styles.deck}>
+          <textarea
+            className={styles.textarea}
+            value={draft}
+            placeholder={
+              "1 Lightning Bolt\n...\n\nSideboard\n1 Toxic Deluge\n..."
+            }
+            aria-label="Decklist"
+            onChange={(event) => setDraft(event.target.value)}
+          />
+          <div className={styles.deckActions}>
+            <button
+              type="button"
+              className={`${styles.btn} ${styles.btnPrimary}`}
+              onClick={() =>
+                setPlan((current) =>
+                  setDecklist(
+                    current,
+                    draft,
+                    (name) => isBasicLand(name) || isListedLand(landNames, name),
+                  ),
+                )
+              }
+            >
+              {hasColumns ? "Update decklist" : "Build grid"}
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       <HiddenDialog
         plan={plan}
