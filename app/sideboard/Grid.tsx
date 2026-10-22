@@ -85,6 +85,7 @@ export function Grid({ plan, printView, onPlan, onDelete, onAdd, focusId, onFocu
         onDragOver={(event) => overColumn(event, column.id)}
         onDrop={() => dropColumn(column.id)}
       >
+        {column.board === "side" ? <span className={styles.tint} /> : null}
         <div className={styles.labelAnchor}>
           <div
             className={styles.label}

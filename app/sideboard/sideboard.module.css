@@ -214,6 +214,34 @@
   background-image: linear-gradient(#2563eb1f, #2563eb1f);
 }
 
+/* in the header the sideboard tint is a band that slopes with the labels, between the guide lines on
+   either side of the column, over a short strip at the foot; the cells below keep a plain tint */
+.headRow th.side {
+  background-image: none;
+}
+
+.tint {
+  position: absolute;
+  z-index: 0;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: var(--base);
+  background: #e4ecfd;
+}
+
+.tint::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 100%;
+  width: 100%;
+  height: calc(var(--head) - var(--base));
+  background: inherit;
+  transform-origin: 0 100%;
+  transform: skewX(-45deg);
+}
+
 .divider {
   width: 10px;
   min-width: 10px;
@@ -427,6 +455,7 @@
 .edge::after {
   content: "";
   position: absolute;
+  z-index: 1;
   left: 0;
   background: #9a9a90;
 }
