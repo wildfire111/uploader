@@ -29,6 +29,17 @@ import {
   type Matchup,
   type Plan,
 } from "./plan";
+import { SavedPlansDialog } from "./SavedPlansDialog";
+import { SavePrompt } from "./SavePrompt";
+import {
+  addSave,
+  findSave,
+  matchesSave,
+  readSaves,
+  removeSave,
+  writeSaves,
+  type SavedPlan,
+} from "./saves";
 import { decodeShare, encodeShare, parsePlan, planToJson } from "./share";
 import styles from "./sideboard.module.css";
 
@@ -78,6 +89,12 @@ export function SideboardClient({ landNames: landNameList }: { landNames: string
   const [deckOpen, setDeckOpen] = useState<boolean | null>(null);
   const [hiddenOpen, setHiddenOpen] = useState(false);
   const [clearing, setClearing] = useState(false);
+  const [saves, setSaves] = useState<SavedPlan[]>([]);
+  const [savedOpen, setSavedOpen] = useState(false);
+  // a plan waiting to replace the current one, while the person decides whether to save that first
+  const [pending, setPending] = useState<{ next: Plan; notice: string } | null>(null);
+  const [replacing, setReplacing] = useState<{ name: string; andThen?: () => void } | null>(null);
+  const [deleting, setDeleting] = useState<SavedPlan | null>(null);
   const landNames = useMemo(() => (landNameList ? new Set(landNameList) : null), [landNameList]);
   const [undo, setUndo] = useState<{ matchup: Matchup; index: number } | null>(
     null,
@@ -98,18 +115,18 @@ export function SideboardClient({ landNames: landNameList }: { landNames: string
     void (async () => {
       const stored = readStored();
       let next = stored ?? createPlan();
+      // a shared plan that has to wait while the person decides about the plan they already have
+      let offered: Plan | null = null;
       if (window.location.hash.startsWith(SHARE_PREFIX)) {
         const result = await decodeShare(
           window.location.hash.slice(SHARE_PREFIX.length),
         );
         if (!result.ok) {
           flash("That share link doesn't hold a plan.", true);
-        } else if (
-          !stored ||
-          isBlank(stored) ||
-          window.confirm("Replace your saved plan with the shared one?")
-        ) {
+        } else if (!stored || isBlank(stored) || matchesSave(readSaves(), stored)) {
           next = result.plan;
+        } else {
+          offered = result.plan;
         }
         history.replaceState(
           null,
@@ -120,6 +137,9 @@ export function SideboardClient({ landNames: landNameList }: { landNames: string
       setPlan(next);
       setDraft(next.deckText);
       setLoaded(true);
+      if (offered) {
+        setPending({ next: offered, notice: "Opened the shared plan." });
+      }
     })();
   }, []);
 
@@ -202,6 +222,44 @@ export function SideboardClient({ landNames: landNameList }: { landNames: string
     setDraft(next.deckText);
   }
 
+  // replaces the plan, offering first to save the current one unless some save already holds it
+  function replaceWith(next: Plan, notice: string) {
+    if (isBlank(plan) || matchesSave(readSaves(), plan)) {
+      replacePlan(next);
+      flash(notice);
+    } else {
+      setPending({ next, notice });
+    }
+  }
+
+  function commitSave(name: string, andThen?: () => void) {
+    if (!writeSaves(addSave(readSaves(), name, plan, Date.now()))) {
+      flash("Couldn't save: this browser wouldn't store it. Export the plan instead.", true);
+      return;
+    }
+    setSaves(readSaves());
+    flash(`Saved “${name.trim()}”.`);
+    andThen?.();
+  }
+
+  // saving over a name that is taken asks first
+  function saveAs(name: string, andThen?: () => void) {
+    if (findSave(readSaves(), name)) {
+      setReplacing({ name, andThen });
+    } else {
+      commitSave(name, andThen);
+    }
+  }
+
+  function deleteSave(save: SavedPlan) {
+    if (writeSaves(removeSave(readSaves(), save.name))) {
+      flash(`Deleted “${save.name}”.`);
+    } else {
+      flash("Couldn't delete that save.", true);
+    }
+    setSaves(readSaves());
+  }
+
   // builds the grid from the decklist (a first paste or an update), and says how many lands it hid
   function applyDecklist() {
     const next = setDecklist(
@@ -276,8 +334,7 @@ export function SideboardClient({ landNames: landNameList }: { landNames: string
     }
     const result = parsePlan(await file.text());
     if (result.ok) {
-      replacePlan(result.plan);
-      flash("Plan imported.");
+      replaceWith(result.plan, "Plan imported.");
     } else {
       flash(result.error, true);
     }
@@ -412,18 +469,18 @@ export function SideboardClient({ landNames: landNameList }: { landNames: string
         <button type="button" className={styles.btn} onClick={share}>
           Share link
         </button>
-        <button type="button" className={styles.btn} onClick={exportJson}>
-          Export
-        </button>
         <button type="button" className={styles.btn} onClick={() => setClearing(true)}>
           Clear all
         </button>
         <button
           type="button"
           className={styles.btn}
-          onClick={() => importRef.current?.click()}
+          onClick={() => {
+            setSaves(readSaves());
+            setSavedOpen(true);
+          }}
         >
-          Import
+          My plans
         </button>
         <input
           ref={importRef}
@@ -472,13 +529,75 @@ export function SideboardClient({ landNames: landNameList }: { landNames: string
       <ConfirmDialog
         message={
           clearing
-            ? "Clear everything? This removes the decklist, every matchup and all ticks and hidden cards, and can't be undone. Export first if you want a copy."
+            ? "Clear everything? This removes the decklist, every matchup and all ticks and hidden cards, and can't be undone. Save it under My plans or export it to a file first if you want a copy."
             : null
         }
         confirmLabel="Clear all"
         onConfirm={clearAll}
         onCancel={() => setClearing(false)}
       />
+
+      <ConfirmDialog
+        message={replacing ? `A plan called “${replacing.name}” is already saved. Replace it?` : null}
+        confirmLabel="Replace"
+        onConfirm={() => {
+          const request = replacing;
+          setReplacing(null);
+          if (request) {
+            commitSave(request.name, request.andThen);
+          }
+        }}
+        onCancel={() => setReplacing(null)}
+      />
+
+      <ConfirmDialog
+        message={deleting ? `Delete the saved plan “${deleting.name}”? This can't be undone.` : null}
+        confirmLabel="Delete"
+        onConfirm={() => {
+          const save = deleting;
+          setDeleting(null);
+          if (save) {
+            deleteSave(save);
+          }
+        }}
+        onCancel={() => setDeleting(null)}
+      />
+
+      {savedOpen ? (
+        <SavedPlansDialog
+          saves={saves}
+          onSave={(name) => saveAs(name)}
+          onLoad={(save) => {
+            setSavedOpen(false);
+            replaceWith(save.plan, `Loaded “${save.name}”.`);
+          }}
+          onDelete={setDeleting}
+          onExport={exportJson}
+          onImport={() => {
+            setSavedOpen(false);
+            importRef.current?.click();
+          }}
+          onClose={() => setSavedOpen(false)}
+        />
+      ) : null}
+
+      {pending ? (
+        <SavePrompt
+          onSave={(name) =>
+            saveAs(name, () => {
+              replacePlan(pending.next);
+              flash(`Saved “${name.trim()}”. ${pending.notice}`);
+              setPending(null);
+            })
+          }
+          onDiscard={() => {
+            replacePlan(pending.next);
+            flash(pending.notice);
+            setPending(null);
+          }}
+          onCancel={() => setPending(null)}
+        />
+      ) : null}
 
       <HiddenDialog
         plan={plan}

@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type 
 import { ConfirmDialog } from "./ConfirmDialog";
 import { countMatchup, printColumns } from "./counts";
 import type { Column } from "./deck";
+import { noAutofill } from "./noAutofill";
 import { cycleCell, hideColumn, moveColumn, moveMatchup, renameMatchup, type Matchup, type Plan } from "./plan";
 import styles from "./sideboard.module.css";
 
@@ -252,13 +253,7 @@ export function Grid({ plan, printView, onPlan, onDelete, onAdd, focusId, onFocu
                           defaultValue={matchup.label}
                           placeholder="Name"
                           aria-label="Matchup name"
-                          // keeps password managers from offering to fill it: autoComplete for the
-                          // browser, then the opt-outs 1Password, LastPass, Bitwarden and Dashlane each read
-                          autoComplete="off"
-                          data-1p-ignore
-                          data-lpignore="true"
-                          data-bwignore
-                          data-form-type="other"
+                          {...noAutofill}
                           onInput={(event) => {
                             event.currentTarget.parentElement?.setAttribute("data-value", event.currentTarget.value);
                           }}
