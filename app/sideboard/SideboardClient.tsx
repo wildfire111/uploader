@@ -358,7 +358,7 @@ export function SideboardClient({ landNames: landNameList }: { landNames: string
         </div>
       ) : null}
       {shareUrl ? (
-        <div className={styles.notice}>
+        <div className={`${styles.notice} ${styles.toast} ${styles.toastBottom}`}>
           <input
             className={styles.input}
             readOnly
@@ -376,7 +376,7 @@ export function SideboardClient({ landNames: landNameList }: { landNames: string
         </div>
       ) : null}
       {undo ? (
-        <div className={styles.notice} role="status">
+        <div className={`${styles.notice} ${styles.toast} ${styles.toastBottom}`} role="status">
           Deleted “{undo.matchup.label}”
           <button type="button" className={styles.btn} onClick={undoDelete}>
             Undo

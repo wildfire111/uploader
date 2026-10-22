@@ -122,6 +122,13 @@
   box-shadow: 0 4px 14px #0003;
 }
 
+/* the ones with a button or a link to copy sit at the foot of the window instead, out of the header */
+.toastBottom {
+  top: auto;
+  bottom: 24px;
+  transform: translateX(-50%);
+}
+
 @media print {
   .toast {
     display: none;
