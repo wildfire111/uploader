@@ -658,6 +658,27 @@
   padding: 16px;
   width: min(420px, 92vw);
   max-height: 80vh;
+  /* the site's reset removes the margin that centres a modal dialog */
+  margin: auto;
+}
+
+/* a form laid out as a row; the site's own form style is a column */
+.rowForm {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  max-width: none;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.dialogWide {
+  width: min(520px, 94vw);
+}
+
+.savesNote {
+  color: #555;
+  font-size: 0.9rem;
 }
 
 .dialog::backdrop {
