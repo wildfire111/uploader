@@ -126,6 +126,7 @@ export function EventDetailClient({
         editInProgress={editInProgress}
         isPending={isPending}
         isPublishing={publishing.progress !== null}
+        retryInSeconds={publishing.retryInSeconds}
         onDelete={deleteEvent}
         onSubmit={submitEvent}
         onPublish={publishing.publish}

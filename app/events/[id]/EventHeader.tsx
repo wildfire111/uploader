@@ -21,6 +21,7 @@ export function EventHeader({
   editInProgress,
   isPending,
   isPublishing,
+  retryInSeconds,
   onDelete,
   onSubmit,
   onPublish,
@@ -34,6 +35,8 @@ export function EventHeader({
   editInProgress: boolean;
   isPending: boolean;
   isPublishing: boolean;
+  // seconds left before Publish can be tried again after a failure
+  retryInSeconds: number | null;
   onDelete: () => void;
   onSubmit: () => void;
   onPublish: () => void;
@@ -121,8 +124,15 @@ export function EventHeader({
             </button>
           ) : null}
           {canPublish ? (
-            <button type="button" data-variant="primary" onClick={onPublish} disabled={isPublishing}>
-              Publish to Moxfield
+            <button
+              type="button"
+              data-variant="primary"
+              onClick={onPublish}
+              disabled={isPublishing || retryInSeconds !== null}
+            >
+              {retryInSeconds !== null
+                ? `Publish to Moxfield (retry in ${retryInSeconds}s)`
+                : "Publish to Moxfield"}
             </button>
           ) : null}
         </div>

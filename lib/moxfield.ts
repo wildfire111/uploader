@@ -1,6 +1,10 @@
 import "server-only";
 import { getValidAccessToken } from "./moxfieldAuth";
-import { MoxfieldContentError, MoxfieldReauthRequiredError } from "./moxfieldErrors";
+import {
+  MoxfieldContentError,
+  MoxfieldRateLimitedError,
+  MoxfieldReauthRequiredError,
+} from "./moxfieldErrors";
 import { MOXFIELD_API, moxfieldFetch, readBody } from "./moxfieldHttp";
 import {
   type DeckImportOutcome,
@@ -98,6 +102,10 @@ async function deleteDeck(shortId: string): Promise<void> {
   try {
     await authedRequest("DELETE", `/v1/decks/${encodeURIComponent(shortId)}`, undefined);
   } catch (error) {
+    // being told to slow down is not a cleanup failure: stop here rather than send the create
+    if (error instanceof MoxfieldRateLimitedError) {
+      throw error;
+    }
     // best-effort cleanup only — never let this block a retry. A failure here
     // just leaves one orphaned deck for manual cleanup on moxfield.com.
     console.error(`Could not delete the failed deck ${shortId} before retrying:`, error);

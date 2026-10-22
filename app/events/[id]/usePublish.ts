@@ -1,7 +1,11 @@
 "use client";
 
-import { useState, type Dispatch, type SetStateAction, type TransitionStartFunction } from "react";
+import { useEffect, useState, type Dispatch, type SetStateAction, type TransitionStartFunction } from "react";
 import type { Entry, Event } from "@/lib/types";
+
+// after a failed publish, Publish stays disabled this long so a retry can't follow straight on
+// from the failed request (a 429 asks for a wait, and a timed-out request may still be running)
+const RETRY_LOCK_SECONDS = 60;
 
 const DUPLICATE_WARNING = "Check Moxfield for a duplicate of this deck before retrying.";
 
@@ -43,8 +47,24 @@ export function usePublish({
 }) {
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // seconds until Publish can be clicked again after a failure; null when it can be clicked now
+  const [retryInSeconds, setRetryInSeconds] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (retryInSeconds === null) {
+      return;
+    }
+    const timer = setTimeout(
+      () => setRetryInSeconds(retryInSeconds > 1 ? retryInSeconds - 1 : null),
+      1000
+    );
+    return () => clearTimeout(timer);
+  }, [retryInSeconds]);
 
   function publish() {
+    if (retryInSeconds !== null) {
+      return;
+    }
     setError(null);
     const unpublished = entries.filter((entry) => entry.moxfieldDeckId === null);
     const total = entries.length;
@@ -73,9 +93,10 @@ export function usePublish({
       } catch (publishError) {
         setError(publishError instanceof Error ? publishError.message : "Publishing failed.");
         setProgress(null);
+        setRetryInSeconds(RETRY_LOCK_SECONDS);
       }
     });
   }
 
-  return { progress, error, publish };
+  return { progress, error, retryInSeconds, publish };
 }
