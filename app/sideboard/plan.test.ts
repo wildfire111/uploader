@@ -314,13 +314,27 @@ describe("hiding lands", () => {
     expect(setDecklist(createPlan(), deck).hidden).toEqual([]);
   });
 
-  it("leaves a land the person showed shown on update, and hides only the new ones", () => {
+  it("hides a shown land again on update when nothing is ticked against it", () => {
     let plan = setDecklist(createPlan(), deck, isLand);
     plan = showColumn(plan, "main:Volcanic Island#0");
     const updated = setDecklist(plan, "1 Forest\n" + deck, isLand);
-    expect(updated.hidden).not.toContain("main:Volcanic Island#0");
+    expect(updated.hidden).toContain("main:Volcanic Island#0");
     expect(updated.hidden).toContain("main:Island#0");
     expect(updated.hidden).toContain("main:Forest#0");
+  });
+
+  it("keeps a land shown on update when it has a tick, and does not hide it twice", () => {
+    let plan = setDecklist(createPlan(), deck, isLand);
+    plan = showColumn(plan, "main:Volcanic Island#0");
+    plan = cycleCell(addMatchup(plan, "Cradle", "m1"), "m1", "main:Volcanic Island#0");
+    const updated = setDecklist(plan, deck, isLand);
+    expect(updated.hidden).not.toContain("main:Volcanic Island#0");
+    expect(updated.hidden.filter((id) => id === "main:Island#0")).toHaveLength(1);
+  });
+
+  it("leaves non-lands alone on update", () => {
+    const plan = setDecklist(createPlan(), deck, isLand);
+    expect(setDecklist(plan, deck, isLand).hidden).not.toContain("main:Flash#0");
   });
 
   it("recognises the basics", () => {

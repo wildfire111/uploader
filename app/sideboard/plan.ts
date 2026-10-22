@@ -51,7 +51,8 @@ export function isBasicLand(name: string): boolean {
 
 // used for the first paste and for every update: cards that stay keep their ticks, order and
 // hidden state, new cards go at the end of their group and cards that left take their ticks with them.
-// A new maindeck card that `isLand` accepts starts hidden; ones the person has shown stay shown.
+// A maindeck card that `isLand` accepts is hidden unless it has a tick in some matchup, so a land
+// the person showed goes back into hiding on an update when nothing is ticked against it.
 export function setDecklist(
   plan: Plan,
   deckText: string,
@@ -68,22 +69,31 @@ export function setDecklist(
     ...added.filter((column) => column.board === board),
   ];
 
+  const matchups = plan.matchups.map((matchup) => ({
+    ...matchup,
+    cells: Object.fromEntries(
+      Object.entries(matchup.cells).filter(([id]) => freshIds.has(id)),
+    ),
+  }));
+  const ticked = new Set(matchups.flatMap((matchup) => Object.keys(matchup.cells)));
+  const untickedLands = fresh
+    .filter(
+      (column) =>
+        column.board === "main" && isLand?.(column.name) && !ticked.has(column.id),
+    )
+    .map((column) => column.id);
+
   return {
     ...plan,
     deckText,
     columns: [...group("side"), ...group("main")],
     hidden: [
-      ...plan.hidden.filter((id) => freshIds.has(id)),
-      ...added
-        .filter((column) => column.board === "main" && isLand?.(column.name))
-        .map((column) => column.id),
+      ...new Set([
+        ...plan.hidden.filter((id) => freshIds.has(id)),
+        ...untickedLands,
+      ]),
     ],
-    matchups: plan.matchups.map((matchup) => ({
-      ...matchup,
-      cells: Object.fromEntries(
-        Object.entries(matchup.cells).filter(([id]) => freshIds.has(id)),
-      ),
-    })),
+    matchups,
   };
 }
 
