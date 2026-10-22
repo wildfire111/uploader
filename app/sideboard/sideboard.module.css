@@ -568,9 +568,11 @@
 
 /* ---- print view and paper ---- */
 
+/* the printable area of A4 landscape with 10mm margins (277mm by 190mm), a hair under so it can't
+   spill onto a second page */
 .paper {
-  width: 960px;
-  height: 690px;
+  width: 1046px;
+  height: 716px;
   overflow: hidden;
   background: #fff;
   border: 1px solid #999;
@@ -617,7 +619,7 @@
 
 @media print {
   @page {
-    size: landscape;
+    size: A4 landscape;
     margin: 10mm;
   }
 

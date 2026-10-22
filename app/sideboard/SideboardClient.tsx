@@ -35,9 +35,9 @@ import styles from "./sideboard.module.css";
 const STORAGE_KEY = "sideboard-plan";
 const SHARE_PREFIX = "#plan=";
 const UNDO_MS = 6000;
-// the paper the grid is fitted to, in px: a landscape page with margins, for the smaller of Letter and A4
-const PAPER_WIDTH = 960;
-const PAPER_HEIGHT = 690;
+// the paper the grid is fitted to, in px: the printable area of A4 landscape with 10mm margins
+const PAPER_WIDTH = 1046;
+const PAPER_HEIGHT = 716;
 // a short plan is blown up to fill the page, but not so far that it looks odd
 const MAX_FIT_SCALE = 2;
 
