@@ -270,7 +270,12 @@ export function Grid({ plan, printView, onPlan, onDelete, onAdd, focusId, onFocu
                         className={styles.iconBtn}
                         aria-label={`Delete ${matchup.label}`}
                         title="Delete this matchup"
-                        onClick={() => onDelete(matchup, index)}
+                        onClick={() => {
+                          // a row that was never named has nothing worth asking about
+                          if (matchup.label === "" || window.confirm(`Delete “${matchup.label}”?`)) {
+                            onDelete(matchup, index);
+                          }
+                        }}
                       >
                         ×
                       </button>
