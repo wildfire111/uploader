@@ -64,10 +64,14 @@ export async function updateEventDetailsAction(
     return actionError(problem);
   }
 
-  // a longer event code can push existing titles over 100 characters
-  if (input.name !== event.name) {
+  // a longer event code or a bigger attendance (wider placings) can push existing titles over 100 characters
+  if (input.name !== event.name || input.attendance !== event.attendance) {
     for (const entry of await getEntriesForEvent(eventId)) {
-      const titleProblem = checkTitleLength(formatDeckTitle({ ...entry, eventName: input.name }));
+      const titleProblem = checkTitleLength(formatDeckTitle({
+          ...entry,
+          eventName: input.name,
+          attendance: input.attendance,
+        }));
       if (titleProblem) {
         return actionError(
           `That event code doesn't fit ${entry.playerName}'s entry. ${titleProblem}`

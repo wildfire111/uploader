@@ -154,6 +154,7 @@ export function EventDetailClient({
         <div className="entries-column">
           <EntriesList
             entries={entries}
+            attendance={event.attendance}
             selectedEntryId={selection.type === "existing" ? selection.entryId : null}
             isNewEntryOpen={selection.type === "new"}
             locked={editInProgress}
@@ -176,6 +177,7 @@ export function EventDetailClient({
               <EntryForm
                 mode="new"
                 fields={editor.fields}
+                attendance={event.attendance}
                 onFieldsChange={editor.setFields}
                 onCancel={editor.cancelEdit}
                 onSaveAndNext={() => editor.saveNew("next")}
@@ -194,6 +196,7 @@ export function EventDetailClient({
               <EntryForm
                 mode={selectedEntryEditable ? "existing" : "readonly"}
                 fields={editor.fields}
+                attendance={event.attendance}
                 onFieldsChange={editor.setFields}
                 onCancel={editor.cancelEdit}
                 onSave={editor.saveExisting}

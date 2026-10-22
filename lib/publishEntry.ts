@@ -65,7 +65,7 @@ export async function publishEntry(
     });
     const prepared = await deps.prepareDecklist(entry.decklistRaw);
     const moxfieldDeckId = await deps.publishDeck({
-      title: formatDeckTitle({ ...entry, eventName: event.name }),
+      title: formatDeckTitle({ ...entry, eventName: event.name, attendance: event.attendance }),
       description: formatDeckDescription({
         date: event.date,
         fullName: event.fullName,

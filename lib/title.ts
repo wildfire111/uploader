@@ -4,11 +4,12 @@ type DeckTitleInput = PlacingRange & {
   playerName: string;
   deckName: string;
   eventName: string;
+  attendance: number;
 };
 
 // e.g. "01st/04th Anthony P - Gluten Free Storm - GGGongIQ26"
 export function formatDeckTitle(input: DeckTitleInput): string {
-  const placing = formatPlacing(input);
+  const placing = formatPlacing(input, input.attendance);
   return `${placing} ${input.playerName} - ${input.deckName} - ${input.eventName}`;
 }
 

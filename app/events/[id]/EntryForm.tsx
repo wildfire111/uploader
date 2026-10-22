@@ -12,6 +12,7 @@ type Mode = "new" | "existing" | "readonly";
 export function EntryForm({
   mode,
   fields,
+  attendance,
   onFieldsChange,
   onCancel,
   onSave,
@@ -25,6 +26,7 @@ export function EntryForm({
 }: {
   mode: Mode;
   fields: EntryFieldValues;
+  attendance: number;
   onFieldsChange: (fields: EntryFieldValues) => void;
   onCancel: () => void;
   onSave?: () => void;
@@ -70,10 +72,13 @@ export function EntryForm({
         <div className="readonly-field">
           <dt>Placing</dt>
           <dd>
-            {formatPlacing({
-              placingFrom: Number(fields.placingFrom),
-              placingTo: fields.placingTo ? Number(fields.placingTo) : null,
-            })}
+            {formatPlacing(
+              {
+                placingFrom: Number(fields.placingFrom),
+                placingTo: fields.placingTo ? Number(fields.placingTo) : null,
+              },
+              attendance
+            )}
           </dd>
         </div>
         <div className="readonly-field">

@@ -3,8 +3,13 @@ export type PlacingRange = {
   placingTo: number | null;
 };
 
-export function formatOrdinal(position: number): string {
-  const padded = String(position).padStart(2, "0");
+// wide enough for the biggest placing in the event: 01st up to 99 players, 001st up to 999, and so on
+function placingWidth(attendance: number): number {
+  return Math.max(2, String(attendance).length);
+}
+
+export function formatOrdinal(position: number, attendance: number): string {
+  const padded = String(position).padStart(placingWidth(attendance), "0");
   const lastTwoDigits = position % 100;
 
   // 11th to 13th are always "th"
@@ -19,11 +24,11 @@ export function formatOrdinal(position: number): string {
   return `${padded}th`;
 }
 
-export function formatPlacing(range: PlacingRange): string {
+export function formatPlacing(range: PlacingRange, attendance: number): string {
   if (range.placingTo === null) {
-    return formatOrdinal(range.placingFrom);
+    return formatOrdinal(range.placingFrom, attendance);
   }
-  return `${formatOrdinal(range.placingFrom)}/${formatOrdinal(range.placingTo)}`;
+  return `${formatOrdinal(range.placingFrom, attendance)}/${formatOrdinal(range.placingTo, attendance)}`;
 }
 
 // repeats a shared range until it's full, then moves on (03rd/04th at 3, 05th/08th at 5)

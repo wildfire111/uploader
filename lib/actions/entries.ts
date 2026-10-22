@@ -9,11 +9,13 @@ import { canEditEntry, canEditEvent } from "@/lib/permissions";
 import { createEntry, deleteEntry, getEntryById, updateEntry } from "@/lib/queries/entries";
 import { getEventById } from "@/lib/queries/events";
 import { checkTitleLength, formatDeckTitle } from "@/lib/title";
-import type { Entry, EntryInput } from "@/lib/types";
+import type { Entry, EntryInput, Event } from "@/lib/types";
 import { validateEntryInput } from "@/lib/validation";
 
-function titleProblem(eventName: string, input: EntryInput): string | null {
-  return checkTitleLength(formatDeckTitle({ ...input, eventName }));
+function titleProblem(event: Event, input: EntryInput): string | null {
+  return checkTitleLength(
+    formatDeckTitle({ ...input, eventName: event.name, attendance: event.attendance })
+  );
 }
 
 // a companion is saved as "(Companion)" after its card in the sideboard, however the list wrote it
@@ -40,7 +42,7 @@ export async function createEntryAction(
   }
 
   const input = await tidied(rawInput);
-  const problem = validateEntryInput(input) ?? titleProblem(event.name, input);
+  const problem = validateEntryInput(input) ?? titleProblem(event, input);
   if (problem) {
     return actionError(problem);
   }
@@ -70,7 +72,7 @@ export async function updateEntryAction(
   }
 
   const input = await tidied(rawInput);
-  const problem = validateEntryInput(input) ?? titleProblem(event.name, input);
+  const problem = validateEntryInput(input) ?? titleProblem(event, input);
   if (problem) {
     return actionError(problem);
   }

@@ -18,6 +18,7 @@ function warningLabel(warnings: DecklistWarning[]): string {
 
 export function EntriesList({
   entries,
+  attendance,
   selectedEntryId,
   isNewEntryOpen,
   locked,
@@ -25,6 +26,7 @@ export function EntriesList({
   warningsByEntryId,
 }: {
   entries: Entry[];
+  attendance: number;
   selectedEntryId: string | null;
   isNewEntryOpen: boolean;
   locked: boolean;
@@ -53,7 +55,7 @@ export function EntriesList({
             }}
           >
             <span>
-              {formatPlacing(entry)}
+              {formatPlacing(entry, attendance)}
               {entry.moxfieldDeckId !== null ? " ✓" : ""}
             </span>
             <span className="min-w-0">

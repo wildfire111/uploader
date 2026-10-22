@@ -9,6 +9,7 @@ describe("formatDeckTitle", () => {
       playerName: "Anthony P",
       deckName: "Gluten Free Storm",
       eventName: "GGGongIQ26",
+      attendance: 22,
     });
     expect(title).toBe("01st/04th Anthony P - Gluten Free Storm - GGGongIQ26");
   });
@@ -20,6 +21,7 @@ describe("formatDeckTitle", () => {
       playerName: "Anthony P",
       deckName: "Gluten Free Storm",
       eventName: "GGGongIQ26",
+      attendance: 22,
     });
     expect(title).toBe("01st Anthony P - Gluten Free Storm - GGGongIQ26");
   });
@@ -31,6 +33,7 @@ describe("formatDeckTitle", () => {
       playerName: "Sam L",
       deckName: "Mono Red",
       eventName: "MelbWeekly38",
+      attendance: 22,
     });
     expect(title).toBe("05th/08th Sam L - Mono Red - MelbWeekly38");
   });
@@ -42,8 +45,21 @@ describe("formatDeckTitle", () => {
       playerName: "Priya R",
       deckName: "Burn",
       eventName: "GGGongIQ26",
+      attendance: 22,
     });
     expect(title).toBe("11th Priya R - Burn - GGGongIQ26");
+  });
+
+  it("pads placings to the width of the attendance", () => {
+    const title = formatDeckTitle({
+      placingFrom: 3,
+      placingTo: 4,
+      playerName: "Priya R",
+      deckName: "Burn",
+      eventName: "GGGongIQ26",
+      attendance: 1200,
+    });
+    expect(title).toBe("0003rd/0004th Priya R - Burn - GGGongIQ26");
   });
 });
 

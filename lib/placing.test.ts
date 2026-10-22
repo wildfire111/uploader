@@ -12,7 +12,7 @@ describe("suggestNextPlacing", () => {
 
     for (let i = 0; i < 9; i++) {
       const suggestion = suggestNextPlacing(entries);
-      suggestions.push(formatPlacing(suggestion));
+      suggestions.push(formatPlacing(suggestion, 22));
       entries.push(suggestion);
     }
 
@@ -90,17 +90,26 @@ describe("formatOrdinal", () => {
     [21, "21st"],
     [22, "22nd"],
   ])("formats %i as %s", (position, expected) => {
-    expect(formatOrdinal(position)).toBe(expected);
+    expect(formatOrdinal(position, 22)).toBe(expected);
   });
 });
 
 describe("formatPlacing", () => {
   it("formats a single placing", () => {
-    expect(formatPlacing({ placingFrom: 1, placingTo: null })).toBe("01st");
+    expect(formatPlacing({ placingFrom: 1, placingTo: null }, 22)).toBe("01st");
   });
 
   it("formats a shared range with both ends joined by a slash", () => {
-    expect(formatPlacing({ placingFrom: 1, placingTo: 4 })).toBe("01st/04th");
-    expect(formatPlacing({ placingFrom: 5, placingTo: 8 })).toBe("05th/08th");
+    expect(formatPlacing({ placingFrom: 1, placingTo: 4 }, 22)).toBe("01st/04th");
+    expect(formatPlacing({ placingFrom: 5, placingTo: 8 }, 22)).toBe("05th/08th");
+  });
+
+  it("pads to three digits from 100 players and four from 1000", () => {
+    const range = { placingFrom: 5, placingTo: 8 };
+    expect(formatPlacing(range, 99)).toBe("05th/08th");
+    expect(formatPlacing(range, 100)).toBe("005th/008th");
+    expect(formatPlacing(range, 999)).toBe("005th/008th");
+    expect(formatPlacing(range, 1000)).toBe("0005th/0008th");
+    expect(formatPlacing(range, 9999)).toBe("0005th/0008th");
   });
 });
