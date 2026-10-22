@@ -218,6 +218,10 @@
   background: #e4ecfd;
 }
 
+.tintHover {
+  background: #dbe7ff;
+}
+
 .tint::before {
   content: "";
   position: absolute;
@@ -417,8 +421,7 @@
   color: #111;
 }
 
-.label:hover,
-.labelHover {
+.label:hover {
   background: #dbe7ff;
 }
 
@@ -562,8 +565,7 @@
   cursor: default;
 }
 
-.printView .label:hover,
-.printView .labelHover {
+.printView .label:hover {
   background: none;
 }
 
