@@ -110,6 +110,24 @@
   margin-bottom: 12px;
 }
 
+/* a notice that floats over the site header, so showing it moves nothing */
+.toast {
+  position: fixed;
+  z-index: 60;
+  top: calc(var(--site-header-height) / 2);
+  left: 50%;
+  transform: translate(-50%, -50%);
+  max-width: min(90vw, 640px);
+  margin: 0;
+  box-shadow: 0 4px 14px #0003;
+}
+
+@media print {
+  .toast {
+    display: none;
+  }
+}
+
 .error {
   border-color: #b91c1c;
   color: #b91c1c;

@@ -351,7 +351,7 @@ export function SideboardClient({ landNames: landNameList }: { landNames: string
     <div className={styles.page}>
       {message ? (
         <div
-          className={`${styles.notice} ${message.error ? styles.error : ""}`}
+          className={`${styles.notice} ${styles.toast} ${message.error ? styles.error : ""}`}
           role="status"
         >
           {message.text}
