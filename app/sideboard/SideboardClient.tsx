@@ -1,21 +1,32 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ChangeEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+} from "react";
 import { flushSync } from "react-dom";
 import { Grid } from "./Grid";
+import { HiddenDialog } from "./HiddenDialog";
 import {
   addMatchup,
   createPlan,
   insertMatchup,
+  isBasicLand,
   MAX_SIZE,
   MIN_SIZE,
   removeMatchup,
   setDecklist,
   setSize,
   showAllColumns,
+  showColumn,
   type Matchup,
   type Plan,
 } from "./plan";
+import { useLandNames } from "./useLandNames";
 import { decodeShare, encodeShare, parsePlan, planToJson } from "./share";
 import styles from "./sideboard.module.css";
 
@@ -41,6 +52,14 @@ function readStored(): Plan | null {
   }
 }
 
+// the list holds full names and front faces, so a decklist can use either
+function isListedLand(landNames: Set<string> | null, name: string): boolean {
+  return (
+    landNames !== null &&
+    (landNames.has(name) || landNames.has(name.split(" // ")[0].trim()))
+  );
+}
+
 function isBlank(plan: Plan): boolean {
   return plan.deckText.trim() === "" && plan.matchups.length === 0;
 }
@@ -54,7 +73,11 @@ export function SideboardClient() {
   const [focusId, setFocusId] = useState<string | null>(null);
   const [message, setMessage] = useState<Message>(null);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
-  const [undo, setUndo] = useState<{ matchup: Matchup; index: number } | null>(null);
+  const [hiddenOpen, setHiddenOpen] = useState(false);
+  const landNames = useLandNames();
+  const [undo, setUndo] = useState<{ matchup: Matchup; index: number } | null>(
+    null,
+  );
   const undoTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const started = useRef(false);
   const viewBeforePrint = useRef<View>("edit");
@@ -71,13 +94,26 @@ export function SideboardClient() {
       const stored = readStored();
       let next = stored ?? createPlan();
       if (window.location.hash.startsWith(SHARE_PREFIX)) {
-        const result = await decodeShare(window.location.hash.slice(SHARE_PREFIX.length));
+        const result = await decodeShare(
+          window.location.hash.slice(SHARE_PREFIX.length),
+        );
         if (!result.ok) {
-          setMessage({ text: "That share link doesn't hold a plan.", error: true });
-        } else if (!stored || isBlank(stored) || window.confirm("Replace your saved plan with the shared one?")) {
+          setMessage({
+            text: "That share link doesn't hold a plan.",
+            error: true,
+          });
+        } else if (
+          !stored ||
+          isBlank(stored) ||
+          window.confirm("Replace your saved plan with the shared one?")
+        ) {
           next = result.plan;
         }
-        history.replaceState(null, "", window.location.pathname + window.location.search);
+        history.replaceState(
+          null,
+          "",
+          window.location.pathname + window.location.search,
+        );
       }
       setPlan(next);
       setDraft(next.deckText);
@@ -103,7 +139,11 @@ export function SideboardClient() {
       return;
     }
     const scale = fit
-      ? Math.min(MAX_FIT_SCALE, PAPER_WIDTH / inner.offsetWidth, PAPER_HEIGHT / inner.offsetHeight)
+      ? Math.min(
+          MAX_FIT_SCALE,
+          PAPER_WIDTH / inner.offsetWidth,
+          PAPER_HEIGHT / inner.offsetHeight,
+        )
       : 1;
     inner.style.setProperty("--scale", String(scale));
   }
@@ -172,7 +212,9 @@ export function SideboardClient() {
   }
 
   function exportJson() {
-    const url = URL.createObjectURL(new Blob([planToJson(plan)], { type: "application/json" }));
+    const url = URL.createObjectURL(
+      new Blob([planToJson(plan)], { type: "application/json" }),
+    );
     const link = document.createElement("a");
     link.href = url;
     link.download = "sideboard-plan.json";
@@ -201,26 +243,56 @@ export function SideboardClient() {
     return (
       <div className={`${styles.page} ${styles.printView}`}>
         <div className={`${styles.toolbar} ${styles.noPrint}`}>
-          <button type="button" className={styles.btn} onClick={() => setView("edit")}>
+          <button
+            type="button"
+            className={styles.btn}
+            onClick={() => setView("edit")}
+          >
             ← Back to editing
           </button>
-          <div className={styles.radios} role="radiogroup" aria-label="Print size">
+          <div
+            className={styles.radios}
+            role="radiogroup"
+            aria-label="Print size"
+          >
             <label>
-              <input type="radio" name="size" checked={fit} onChange={() => setFit(true)} />
+              <input
+                type="radio"
+                name="size"
+                checked={fit}
+                onChange={() => setFit(true)}
+              />
               Fit to page
             </label>
             <label>
-              <input type="radio" name="size" checked={!fit} onChange={() => setFit(false)} />
+              <input
+                type="radio"
+                name="size"
+                checked={!fit}
+                onChange={() => setFit(false)}
+              />
               Use the column size
             </label>
           </div>
-          <button type="button" className={`${styles.btn} ${styles.btnPrimary}`} onClick={() => window.print()}>
+          <button
+            type="button"
+            className={`${styles.btn} ${styles.btnPrimary}`}
+            onClick={() => window.print()}
+          >
             Print
           </button>
         </div>
         <div className={styles.paper}>
           <div ref={paperRef} className={styles.paperInner}>
-            <Grid plan={plan} printView onPlan={setPlan} onDelete={onDelete} onAdd={addRow} focusId={null} onFocused={clearFocus} />
+            <Grid
+              plan={plan}
+              printView
+              onPlan={setPlan}
+              onDelete={onDelete}
+              onAdd={addRow}
+              focusId={null}
+              onFocused={clearFocus}
+            />
           </div>
         </div>
       </div>
@@ -234,7 +306,9 @@ export function SideboardClient() {
         <textarea
           className={styles.textarea}
           value={draft}
-          placeholder={"1 Lightning Bolt\n...\n\nSideboard\n1 Toxic Deluge\n..."}
+          placeholder={
+            "1 Lightning Bolt\n...\n\nSideboard\n1 Toxic Deluge\n..."
+          }
           aria-label="Decklist"
           onChange={(event) => setDraft(event.target.value)}
         />
@@ -242,7 +316,15 @@ export function SideboardClient() {
           <button
             type="button"
             className={`${styles.btn} ${styles.btnPrimary}`}
-            onClick={() => setPlan((current) => setDecklist(current, draft))}
+            onClick={() =>
+              setPlan((current) =>
+                setDecklist(
+                  current,
+                  draft,
+                  (name) => isBasicLand(name) || isListedLand(landNames, name),
+                ),
+              )
+            }
           >
             {hasColumns ? "Update decklist" : "Build grid"}
           </button>
@@ -250,17 +332,34 @@ export function SideboardClient() {
       </details>
 
       {message ? (
-        <div className={`${styles.notice} ${message.error ? styles.error : ""}`} role="status">
+        <div
+          className={`${styles.notice} ${message.error ? styles.error : ""}`}
+          role="status"
+        >
           {message.text}
-          <button type="button" className={styles.btn} onClick={() => setMessage(null)}>
+          <button
+            type="button"
+            className={styles.btn}
+            onClick={() => setMessage(null)}
+          >
             Dismiss
           </button>
         </div>
       ) : null}
       {shareUrl ? (
         <div className={styles.notice}>
-          <input className={styles.input} readOnly value={shareUrl} aria-label="Share link" onFocus={(event) => event.target.select()} />
-          <button type="button" className={styles.btn} onClick={() => setShareUrl(null)}>
+          <input
+            className={styles.input}
+            readOnly
+            value={shareUrl}
+            aria-label="Share link"
+            onFocus={(event) => event.target.select()}
+          />
+          <button
+            type="button"
+            className={styles.btn}
+            onClick={() => setShareUrl(null)}
+          >
             Close
           </button>
         </div>
@@ -282,15 +381,25 @@ export function SideboardClient() {
             min={MIN_SIZE}
             max={MAX_SIZE}
             value={plan.size}
-            onChange={(event) => setPlan((current) => setSize(current, Number(event.target.value)))}
+            onChange={(event) =>
+              setPlan((current) => setSize(current, Number(event.target.value)))
+            }
           />
         </label>
         {plan.hidden.length > 0 ? (
-          <button type="button" className={styles.btn} onClick={() => setPlan(showAllColumns)}>
-            {plan.hidden.length} hidden — show all
+          <button
+            type="button"
+            className={styles.btn}
+            onClick={() => setHiddenOpen(true)}
+          >
+            {plan.hidden.length} hidden
           </button>
         ) : null}
-        <button type="button" className={styles.btn} onClick={() => setView("print")}>
+        <button
+          type="button"
+          className={styles.btn}
+          onClick={() => setView("print")}
+        >
           Print view
         </button>
         <button type="button" className={styles.btn} onClick={share}>
@@ -299,11 +408,29 @@ export function SideboardClient() {
         <button type="button" className={styles.btn} onClick={exportJson}>
           Export
         </button>
-        <button type="button" className={styles.btn} onClick={() => importRef.current?.click()}>
+        <button
+          type="button"
+          className={styles.btn}
+          onClick={() => importRef.current?.click()}
+        >
           Import
         </button>
-        <input ref={importRef} type="file" accept="application/json,.json" hidden onChange={importJson} />
+        <input
+          ref={importRef}
+          type="file"
+          accept="application/json,.json"
+          hidden
+          onChange={importJson}
+        />
       </div>
+
+      <HiddenDialog
+        plan={plan}
+        open={hiddenOpen}
+        onClose={() => setHiddenOpen(false)}
+        onShow={(id) => setPlan((current) => showColumn(current, id))}
+        onShowAll={() => setPlan(showAllColumns)}
+      />
 
       {hasColumns ? (
         <Grid
@@ -316,7 +443,10 @@ export function SideboardClient() {
           onFocused={clearFocus}
         />
       ) : (
-        <p className={styles.empty}>Paste a decklist and build the grid, then add the matchups you want to plan for.</p>
+        <p className={styles.empty}>
+          Paste a decklist and build the grid, then add the matchups you want to
+          plan for.
+        </p>
       )}
     </div>
   );

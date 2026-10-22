@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/guards";
 import { formatTimestamp } from "@/lib/formatDate";
-import { cardAliasesList, cardNamesList, companionsList, pointsList, reservedList } from "@/lib/referenceLists";
+import { cardAliasesList, cardNamesList, companionsList, landsList, pointsList, reservedList } from "@/lib/referenceLists";
 import { RefreshButton } from "./RefreshButton";
 
 // Shows what is stored right now, so it must never be served from a cache.
@@ -37,6 +37,12 @@ const SECTIONS = [
     title: "Companions",
     noun: "cards",
     about: "Every card with the companion ability, from Scryfall. A companion in a decklist is checked against it, and a sideboard card on it can be marked as the companion. It refreshes itself once it is a day old.",
+  },
+  {
+    list: landsList,
+    title: "Lands",
+    noun: "names",
+    about: "Every land, from Scryfall, used by the sideboard guide to hide lands by default. The guide page only reads the stored copy, so click Refresh here once, and again now and then as new lands are printed.",
   },
 ];
 
