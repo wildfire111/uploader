@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type DragEvent } from "react";
-import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
+import { ConfirmDialog } from "./ConfirmDialog";
 import { countMatchup, printColumns } from "./counts";
 import type { Column } from "./deck";
 import { cycleCell, hideColumn, moveColumn, moveMatchup, renameMatchup, type Matchup, type Plan } from "./plan";
@@ -315,8 +315,9 @@ export function Grid({ plan, printView, onPlan, onDelete, onAdd, focusId, onFocu
           Drop here to hide
         </div>
       ) : null}
-      <ConfirmDeleteDialog
-        name={confirming?.matchup.label ?? null}
+      <ConfirmDialog
+        message={confirming ? `Delete “${confirming.matchup.label}”?` : null}
+        confirmLabel="Delete"
         onConfirm={() => {
           if (confirming) {
             onDelete(confirming.matchup, confirming.index);

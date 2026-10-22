@@ -10,6 +10,7 @@ import {
   type ChangeEvent,
 } from "react";
 import { flushSync } from "react-dom";
+import { ConfirmDialog } from "./ConfirmDialog";
 import { Grid } from "./Grid";
 import { HiddenDialog } from "./HiddenDialog";
 import {
@@ -75,6 +76,7 @@ export function SideboardClient({ landNames: landNameList }: { landNames: string
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [deckOpen, setDeckOpen] = useState<boolean | null>(null);
   const [hiddenOpen, setHiddenOpen] = useState(false);
+  const [clearing, setClearing] = useState(false);
   const landNames = useMemo(() => (landNameList ? new Set(landNameList) : null), [landNameList]);
   const [undo, setUndo] = useState<{ matchup: Matchup; index: number } | null>(
     null,
@@ -199,6 +201,17 @@ export function SideboardClient({ landNames: landNameList }: { landNames: string
   function replacePlan(next: Plan) {
     setPlan(next);
     setDraft(next.deckText);
+  }
+
+  // back to a blank page, as on the first visit
+  function clearAll() {
+    clearTimeout(undoTimer.current);
+    replacePlan(createPlan());
+    setDeckOpen(null);
+    setUndo(null);
+    setShareUrl(null);
+    setMessage(null);
+    setClearing(false);
   }
 
   async function share() {
@@ -377,6 +390,9 @@ export function SideboardClient({ landNames: landNameList }: { landNames: string
         <button type="button" className={styles.btn} onClick={exportJson}>
           Export
         </button>
+        <button type="button" className={styles.btn} onClick={() => setClearing(true)}>
+          Clear all
+        </button>
         <button
           type="button"
           className={styles.btn}
@@ -435,6 +451,17 @@ export function SideboardClient({ landNames: landNameList }: { landNames: string
           </div>
         </div>
       ) : null}
+
+      <ConfirmDialog
+        message={
+          clearing
+            ? "Clear everything? This removes the decklist, every matchup and all ticks and hidden cards, and can't be undone. Export first if you want a copy."
+            : null
+        }
+        confirmLabel="Clear all"
+        onConfirm={clearAll}
+        onCancel={() => setClearing(false)}
+      />
 
       <HiddenDialog
         plan={plan}

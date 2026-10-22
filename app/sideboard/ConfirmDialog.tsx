@@ -3,13 +3,15 @@
 import { useEffect, useRef } from "react";
 import styles from "./sideboard.module.css";
 
-// Asks before a matchup is deleted. Closed when `name` is null.
-export function ConfirmDeleteDialog({
-  name,
+// Asks before something that can't be taken back. Closed when `message` is null.
+export function ConfirmDialog({
+  message,
+  confirmLabel,
   onConfirm,
   onCancel,
 }: {
-  name: string | null;
+  message: string | null;
+  confirmLabel: string;
   onConfirm: () => void;
   onCancel: () => void;
 }) {
@@ -17,19 +19,19 @@ export function ConfirmDeleteDialog({
 
   useEffect(() => {
     const dialog = dialogRef.current;
-    if (dialog && name !== null && !dialog.open) {
+    if (dialog && message !== null && !dialog.open) {
       dialog.showModal();
-    } else if (dialog && name === null && dialog.open) {
+    } else if (dialog && message === null && dialog.open) {
       dialog.close();
     }
-  }, [name]);
+  }, [message]);
 
   return (
-    <dialog ref={dialogRef} className={styles.dialog} aria-label="Delete matchup" onClose={onCancel}>
-      <p>Delete “{name}”?</p>
+    <dialog ref={dialogRef} className={styles.dialog} aria-label="Confirm" onClose={onCancel}>
+      <p>{message}</p>
       <div className={styles.dialogHead}>
         <button type="button" className={`${styles.btn} ${styles.btnPrimary}`} onClick={onConfirm}>
-          Delete
+          {confirmLabel}
         </button>
         <button type="button" className={styles.btn} onClick={onCancel} autoFocus>
           Cancel
