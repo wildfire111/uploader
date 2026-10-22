@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties, type DragEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type DragEvent } from "react";
 import { countMatchup, printColumns } from "./counts";
 import type { Column } from "./deck";
 import { cycleCell, hideColumn, moveColumn, moveMatchup, renameMatchup, type Matchup, type Plan } from "./plan";
@@ -10,6 +10,11 @@ type Drag = { kind: "col" | "row"; id: string } | null;
 
 // what `over` holds while a column is over the target for hiding it
 const HIDE_ZONE = "hide-zone";
+
+// the gap under a label's first letter, where the guide lines turn, in px
+const HEAD_BASE = 12;
+const HEAD_PAD = 8;
+const HEAD_MIN = 56;
 
 type Props = {
   plan: Plan;
@@ -27,6 +32,7 @@ export function Grid({ plan, printView, onPlan, onDelete, onAdd, focusId, onFocu
   const [drag, setDrag] = useState<Drag>(null);
   const [over, setOver] = useState<string | null>(null);
   const nameInputs = useRef(new Map<string, HTMLInputElement>());
+  const scrollerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (focusId) {
@@ -40,6 +46,31 @@ export function Grid({ plan, printView, onPlan, onDelete, onAdd, focusId, onFocu
   const side = shown.filter((column) => column.board === "side");
   const main = shown.filter((column) => column.board === "main");
   const boardOf = new Map(plan.columns.map((column) => [column.id, column.board]));
+
+  // the header is as tall as the longest label needs: a label is a box turned 45 degrees, so its
+  // height is (width + text height) * sin 45. The lines in the header are as long as the header is tall.
+  const labelKey = shown.map((column) => column.name).join("|");
+  useLayoutEffect(() => {
+    const scroller = scrollerRef.current;
+    if (!scroller) {
+      return;
+    }
+    const fit = () => {
+      let widest = 0;
+      let tall = 0;
+      for (const label of scroller.querySelectorAll<HTMLElement>("[data-label]")) {
+        widest = Math.max(widest, label.offsetWidth);
+        tall = label.offsetHeight;
+      }
+      if (widest > 0) {
+        const head = Math.max(HEAD_MIN, Math.ceil(HEAD_BASE + (widest + tall) * Math.SQRT1_2) + HEAD_PAD);
+        scroller.style.setProperty("--head", `${head}px`);
+      }
+    };
+    fit();
+    // the labels are measured again once the page's font is in
+    void document.fonts?.ready.then(fit);
+  }, [labelKey, plan.size]);
 
   function startDrag(event: DragEvent, kind: "col" | "row", id: string) {
     event.dataTransfer.setData("text/plain", id);
@@ -89,6 +120,7 @@ export function Grid({ plan, printView, onPlan, onDelete, onAdd, focusId, onFocu
         <div className={styles.labelAnchor}>
           <div
             className={styles.label}
+            data-label
             title={column.name}
             draggable={editable}
             onDragStart={(event) => startDrag(event, "col", column.id)}
@@ -130,7 +162,11 @@ export function Grid({ plan, printView, onPlan, onDelete, onAdd, focusId, onFocu
   const hidingColumn = drag?.kind === "col" && boardOf.get(drag.id) === "main";
 
   return (
-    <div className={`${styles.scroller} ${printView ? styles.printView : ""}`} style={{ "--size": `${plan.size}px` } as CSSProperties}>
+    <div
+      ref={scrollerRef}
+      className={`${styles.scroller} ${printView ? styles.printView : ""}`}
+      style={{ "--size": `${plan.size}px`, "--base": `${HEAD_BASE}px` } as CSSProperties}
+    >
       <table className={styles.grid}>
         <thead>
           <tr className={styles.headRow}>

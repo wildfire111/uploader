@@ -4,9 +4,8 @@
 .page {
   /* the site sets a dark colour scheme, which would darken native controls and scrollbars */
   color-scheme: light;
+  /* the header's height, which Grid sets from the longest label; the guide lines are as long as it is tall */
   --head: 190px;
-  /* the gap under a label's first letter, where the guide lines turn */
-  --base: 12px;
   background: #f4f4f0;
   color: #111;
   min-height: calc(100vh - var(--site-header-height));
@@ -468,7 +467,7 @@
 
 .edge::after {
   bottom: var(--base);
-  width: 230px;
+  width: calc((var(--head) - var(--base)) * 1.4143);
   height: 1px;
   transform-origin: 0 100%;
   transform: rotate(-45deg);
