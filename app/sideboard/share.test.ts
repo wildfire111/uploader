@@ -6,7 +6,6 @@ import {
   hideColumn,
   moveColumn,
   setDecklist,
-  setNote,
   setSize,
   setTitle,
   type Plan,
@@ -16,7 +15,6 @@ import { decodeShare, encodeShare, parsePlan, planToJson } from "./share";
 function samplePlan(): Plan {
   let plan = setDecklist(createPlan(), "1 Flash\n1 Black Lotus\n2 Island\n\nSideboard\n1 Lightning Bolt\n1 Toxic Deluge");
   plan = addMatchup(addMatchup(setTitle(plan, "Legacy Doomsday"), "Cradle"), "Oracle");
-  plan = setNote(plan, plan.matchups[0].id, "on the play");
   plan = cycleCell(plan, plan.matchups[0].id, plan.columns[0].id);
   plan = cycleCell(cycleCell(plan, plan.matchups[1].id, plan.columns[2].id), plan.matchups[1].id, plan.columns[2].id);
   plan = moveColumn(plan, plan.columns[0].id, plan.columns[1].id);
@@ -35,8 +33,8 @@ describe("planToJson and parsePlan", () => {
     ["JSON that is not a plan", "[1,2]"],
     ["a plan of an unknown version", JSON.stringify({ ...createPlan(), v: 2 })],
     ["a missing matchup list", JSON.stringify({ ...createPlan(), matchups: undefined })],
-    ["a matchup without a label", JSON.stringify({ ...createPlan(), matchups: [{ id: "a", note: "", cells: {} }] })],
-    ["a cell that is not a tick", JSON.stringify({ ...createPlan(), matchups: [{ id: "a", label: "A", note: "", cells: { x: "yes" } }] })],
+    ["a matchup without a label", JSON.stringify({ ...createPlan(), matchups: [{ id: "a", cells: {} }] })],
+    ["a cell that is not a tick", JSON.stringify({ ...createPlan(), matchups: [{ id: "a", label: "A", cells: { x: "yes" } }] })],
     ["a size that is not a number", JSON.stringify({ ...createPlan(), size: "wide" })],
   ])("rejects %s", (_, text) => {
     const result = parsePlan(text);
@@ -52,6 +50,12 @@ describe("planToJson and parsePlan", () => {
       matchups: plan.matchups.map((matchup) => ({ ...matchup, cells: { ...matchup.cells, "main:Nothing#0": "in" } })),
     };
     expect(parsePlan(JSON.stringify(tampered))).toEqual({ ok: true, plan });
+  });
+
+  it("loads a plan saved with matchup notes, without the notes", () => {
+    const saved = JSON.stringify({ ...createPlan(), matchups: [{ id: "a", label: "A", note: "on the play", cells: {} }] });
+    const result = parsePlan(saved);
+    expect(result.ok && result.plan.matchups[0]).toEqual({ id: "a", label: "A", cells: {} });
   });
 
   it("keeps the size within what the grid can show", () => {

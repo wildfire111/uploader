@@ -10,7 +10,6 @@ import {
   removeMatchup,
   renameMatchup,
   setDecklist,
-  setNote,
   setSize,
   showAllColumns,
   type Plan,
@@ -37,11 +36,24 @@ describe("createPlan", () => {
 });
 
 describe("matchups", () => {
-  it("adds a trimmed label and ignores an empty one", () => {
-    let plan = addMatchup(createPlan(), "  Cradle ");
+  it("adds a trimmed label", () => {
+    const plan = addMatchup(createPlan(), "  Cradle ");
     expect(plan.matchups.map((matchup) => matchup.label)).toEqual(["Cradle"]);
-    plan = addMatchup(plan, "   ");
-    expect(plan.matchups).toHaveLength(1);
+  });
+
+  it("adds a row with a blank name to be typed into", () => {
+    const plan = addMatchup(addMatchup(createPlan(), "Cradle"));
+    expect(plan.matchups.map((matchup) => matchup.label)).toEqual(["Cradle", ""]);
+  });
+
+  it("removes a new row that is named nothing", () => {
+    const plan = addMatchup(addMatchup(createPlan(), "Cradle"));
+    expect(renameMatchup(plan, plan.matchups[1].id, "  ").matchups.map((matchup) => matchup.label)).toEqual(["Cradle"]);
+  });
+
+  it("names a new row", () => {
+    const plan = addMatchup(createPlan());
+    expect(renameMatchup(plan, plan.matchups[0].id, " Oracle ").matchups[0].label).toBe("Oracle");
   });
 
   it("gives each matchup its own id", () => {
@@ -49,11 +61,13 @@ describe("matchups", () => {
     expect(plan.matchups[0].id).not.toBe(plan.matchups[1].id);
   });
 
-  it("renames and notes a matchup", () => {
-    let plan = addMatchup(createPlan(), "Cradle");
-    const { id } = plan.matchups[0];
-    plan = setNote(renameMatchup(plan, id, "Oracle"), id, "on the play");
-    expect(plan.matchups[0]).toMatchObject({ label: "Oracle", note: "on the play" });
+  it("renames a matchup", () => {
+    const plan = addMatchup(createPlan(), "Cradle");
+    expect(renameMatchup(plan, plan.matchups[0].id, "Oracle").matchups[0].label).toBe("Oracle");
+  });
+
+  it("has nothing but a label and its ticks", () => {
+    expect(Object.keys(addMatchup(createPlan(), "Cradle").matchups[0]).sort()).toEqual(["cells", "id", "label"]);
   });
 
   it("keeps the old label when renamed to nothing", () => {

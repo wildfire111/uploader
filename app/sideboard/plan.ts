@@ -6,7 +6,6 @@ export type Cell = "in" | "maybe";
 export type Matchup = {
   id: string;
   label: string;
-  note: string;
   // by column id; an empty cell is absent
   cells: Record<string, Cell>;
 };
@@ -91,25 +90,22 @@ export function showAllColumns(plan: Plan): Plan {
   return { ...plan, hidden: [] };
 }
 
-export function addMatchup(plan: Plan, label: string): Plan {
-  const trimmed = label.trim();
-  if (trimmed === "") {
-    return plan;
-  }
-  return { ...plan, matchups: [...plan.matchups, { id: crypto.randomUUID(), label: trimmed, note: "", cells: {} }] };
+// no label gives a blank row for the name to be typed into
+export function addMatchup(plan: Plan, label = "", id = crypto.randomUUID()): Plan {
+  return { ...plan, matchups: [...plan.matchups, { id, label: label.trim(), cells: {} }] };
 }
 
 function updateMatchup(plan: Plan, id: string, change: (matchup: Matchup) => Matchup): Plan {
   return { ...plan, matchups: plan.matchups.map((matchup) => (matchup.id === id ? change(matchup) : matchup)) };
 }
 
+// a name can't be taken away: a blank one keeps the old name, and a new row that was never named goes
 export function renameMatchup(plan: Plan, id: string, label: string): Plan {
   const trimmed = label.trim();
-  return trimmed === "" ? plan : updateMatchup(plan, id, (matchup) => ({ ...matchup, label: trimmed }));
-}
-
-export function setNote(plan: Plan, id: string, note: string): Plan {
-  return updateMatchup(plan, id, (matchup) => ({ ...matchup, note }));
+  if (trimmed === "") {
+    return plan.matchups.some((matchup) => matchup.id === id && matchup.label === "") ? removeMatchup(plan, id) : plan;
+  }
+  return updateMatchup(plan, id, (matchup) => ({ ...matchup, label: trimmed }));
 }
 
 export function removeMatchup(plan: Plan, id: string): Plan {

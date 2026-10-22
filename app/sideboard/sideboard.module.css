@@ -4,7 +4,9 @@
 .page {
   /* the site sets a dark colour scheme, which would darken native controls and scrollbars */
   color-scheme: light;
-  --head: 200px;
+  --head: 190px;
+  /* the gap under a label's first letter, where the guide lines turn */
+  --base: 12px;
   background: #f4f4f0;
   color: #111;
   min-height: calc(100vh - var(--site-header-height));
@@ -234,36 +236,28 @@
   border-top: 1px solid #c4c4bc;
 }
 
-.stickyA,
-.stickyB {
+.stickyA {
   position: sticky;
   z-index: 2;
-}
-
-.stickyA {
   left: 0;
-  width: 380px;
-  min-width: 380px;
-  max-width: 380px;
+  /* as narrow as the longest name: in a table, a width of 1px with no wrapping shrinks to the content */
+  width: 1px;
   text-align: left !important;
-}
-
-.stickyB {
-  left: 380px;
-  width: 96px;
-  min-width: 96px;
-  max-width: 96px;
   border-right: 2px solid #111;
 }
 
-.headRow th.stickyA,
-.headRow th.stickyB {
-  position: sticky;
+.headRow th.stickyA {
   z-index: 5;
   background: #fff;
   vertical-align: bottom;
-  padding: 0 8px 8px;
+  padding: 0 10px 8px;
   font-size: 1rem;
+}
+
+.headA {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
 }
 
 .headRow th.divider {
@@ -273,8 +267,8 @@
 .rowEdit {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 0 6px;
+  gap: 8px;
+  padding: 0 10px 0 6px;
 }
 
 .handle {
@@ -285,55 +279,47 @@
   padding: 0 2px;
 }
 
+/* the text in ::after is a copy of the name, which sets how wide the input is */
+.sizer {
+  display: inline-grid;
+  min-width: 5ch;
+}
+
+.sizer::after,
 .matchupName {
-  flex: 1;
-  min-width: 0;
+  grid-area: 1 / 1;
+  font: inherit;
   font-weight: 700;
   font-size: 1.05rem;
   padding: 4px 6px;
-  background: transparent;
   border: 1px solid transparent;
-  border-radius: 4px;
-  color: #111;
-  font-family: inherit;
 }
 
-.matchupNote {
-  width: 96px;
-  font-size: 0.8rem;
-  padding: 4px 6px;
+.sizer::after {
+  content: attr(data-value) " ";
+  visibility: hidden;
+  white-space: pre;
+}
+
+.matchupName {
+  width: 100%;
+  min-width: 0;
   background: transparent;
-  border: 1px solid transparent;
   border-radius: 4px;
-  color: #333;
-  font-family: inherit;
+  color: #111;
 }
 
 .matchupName:hover,
-.matchupNote:hover,
-.matchupName:focus,
-.matchupNote:focus {
+.matchupName:focus {
   background: #fff;
   border-color: #888;
   outline: none;
   box-shadow: none;
 }
 
-.matchupText {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  padding: 0 8px;
-}
-
-.matchupText b {
+.matchupLabel {
   font-size: 1.05rem;
-}
-
-.matchupText i {
-  font-size: 0.8rem;
-  color: #333;
-  font-style: normal;
+  padding: 4px 6px;
 }
 
 .iconBtn {
@@ -354,28 +340,43 @@
 }
 
 .count {
+  margin-left: auto;
+  min-width: 56px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  text-align: center;
   font-weight: 700;
   font-size: 0.95rem;
 }
 
 .unbalanced {
-  background-color: #fecaca !important;
+  background: #fecaca;
   color: #7f1d1d;
+}
+
+/* sits under the last row, and stays in view at the bottom and left of the grid when there are many */
+.addRow {
+  position: sticky;
+  left: 0;
+  bottom: 0;
+  z-index: 4;
+  width: max-content;
+  padding: 10px;
 }
 
 /* the label runs up and to the right from the bottom of its column */
 .labelAnchor {
   position: absolute;
   z-index: 1;
-  left: 50%;
-  bottom: 34px;
+  left: 82%;
+  bottom: var(--base);
   width: 0;
   height: 0;
 }
 
 .label {
   position: absolute;
-  left: -0.4em;
+  left: 0;
   bottom: 0;
   transform-origin: 0 100%;
   transform: rotate(-45deg);
@@ -395,27 +396,53 @@
   background: #dbe7ff;
 }
 
-.hideBtn {
-  position: absolute;
-  z-index: 1;
-  bottom: 6px;
+/* appears only while a maindeck column is being dragged, so it takes no room in the grid */
+.hideZone {
+  position: fixed;
+  z-index: 60;
   left: 50%;
+  bottom: 28px;
   transform: translateX(-50%);
-  width: 22px;
-  height: 22px;
-  padding: 0;
-  line-height: 1;
-  background: #fff;
-  border: 1px solid #999;
-  border-radius: 50%;
-  color: #444;
-  cursor: pointer;
-  font-size: 0.85rem;
+  padding: 22px 56px;
+  border: 3px dashed #b91c1c;
+  border-radius: 10px;
+  background: #fee2e2;
+  color: #7f1d1d;
+  font-size: 1.1rem;
+  font-weight: 700;
 }
 
-.hideBtn:hover {
-  background: #fecaca;
-  color: #7f1d1d;
+.hideZoneOver {
+  border-style: solid;
+  background: #fca5a5;
+}
+
+/* a column's left edge: a line up the header that turns to run at 45 degrees, as the labels do,
+   so that the eye can follow a name down to its column */
+.headRow th.edge {
+  border-left: 0;
+}
+
+.edge::before,
+.edge::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  background: #9a9a90;
+}
+
+.edge::before {
+  bottom: 0;
+  width: 1px;
+  height: var(--base);
+}
+
+.edge::after {
+  bottom: var(--base);
+  width: 230px;
+  height: 1px;
+  transform-origin: 0 100%;
+  transform: rotate(-45deg);
 }
 
 .dropHere {
@@ -507,17 +534,8 @@
 }
 
 .printView .stickyA,
-.printView .stickyB,
-.printView .headRow th.stickyA,
-.printView .headRow th.stickyB {
+.printView .headRow th.stickyA {
   position: static;
-}
-
-/* no inputs on paper, so the matchup column can be as wide as its text */
-.printView .stickyA {
-  width: 230px;
-  min-width: 230px;
-  max-width: 230px;
 }
 
 .printView .label {

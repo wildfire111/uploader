@@ -27,7 +27,7 @@ function readMatchup(value: unknown): Matchup | null {
     }
     cells[id] = cell;
   }
-  return { id: value.id, label: value.label, note: typeof value.note === "string" ? value.note : "", cells };
+  return { id: value.id, label: value.label, cells };
 }
 
 // checks a plan from outside (a file, a link or the browser's storage); the columns are rebuilt from

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState, type ChangeEvent } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ChangeEvent } from "react";
 import { flushSync } from "react-dom";
 import { Grid } from "./Grid";
 import {
@@ -52,7 +52,7 @@ export function SideboardClient() {
   const [view, setView] = useState<View>("edit");
   const [fit, setFit] = useState(true);
   const [draft, setDraft] = useState("");
-  const [newMatchup, setNewMatchup] = useState("");
+  const [focusId, setFocusId] = useState<string | null>(null);
   const [message, setMessage] = useState<Message>(null);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [undo, setUndo] = useState<{ matchup: Matchup; index: number } | null>(null);
@@ -147,10 +147,14 @@ export function SideboardClient() {
     }
   }
 
-  function submitMatchup() {
-    setPlan((current) => addMatchup(current, newMatchup));
-    setNewMatchup("");
+  // a blank row, with the cursor in its name
+  function addRow() {
+    const id = crypto.randomUUID();
+    setPlan((current) => addMatchup(current, "", id));
+    setFocusId(id);
   }
+
+  const clearFocus = useCallback(() => setFocusId(null), []);
 
   function replacePlan(next: Plan) {
     setPlan(next);
@@ -218,7 +222,7 @@ export function SideboardClient() {
         <div className={styles.paper}>
           <div ref={paperRef} className={styles.paperInner}>
             {plan.title.trim() ? <h1 className={styles.paperTitle}>{plan.title}</h1> : null}
-            <Grid plan={plan} printView onPlan={setPlan} onDelete={onDelete} />
+            <Grid plan={plan} printView onPlan={setPlan} onDelete={onDelete} onAdd={addRow} focusId={null} onFocused={clearFocus} />
           </div>
         </div>
       </div>
@@ -283,21 +287,6 @@ export function SideboardClient() {
       ) : null}
 
       <div className={styles.toolbar}>
-        <input
-          className={styles.input}
-          value={newMatchup}
-          placeholder="Add matchup"
-          aria-label="Add matchup"
-          onChange={(event) => setNewMatchup(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              submitMatchup();
-            }
-          }}
-        />
-        <button type="button" className={styles.btn} onClick={submitMatchup}>
-          Add
-        </button>
         <label className={styles.sizeLabel}>
           Column size
           <input
@@ -329,7 +318,15 @@ export function SideboardClient() {
       </div>
 
       {hasColumns ? (
-        <Grid plan={plan} printView={false} onPlan={setPlan} onDelete={onDelete} />
+        <Grid
+          plan={plan}
+          printView={false}
+          onPlan={setPlan}
+          onDelete={onDelete}
+          onAdd={addRow}
+          focusId={focusId}
+          onFocused={clearFocus}
+        />
       ) : (
         <p className={styles.empty}>Paste a decklist and build the grid, then add the matchups you want to plan for.</p>
       )}
