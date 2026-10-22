@@ -469,18 +469,8 @@ export function SideboardClient({ landNames: landNameList }: { landNames: string
         <button type="button" className={styles.btn} onClick={share}>
           Share link
         </button>
-        <button type="button" className={styles.btn} onClick={exportJson}>
-          Export
-        </button>
         <button type="button" className={styles.btn} onClick={() => setClearing(true)}>
           Clear all
-        </button>
-        <button
-          type="button"
-          className={styles.btn}
-          onClick={() => importRef.current?.click()}
-        >
-          Import
         </button>
         <button
           type="button"
@@ -490,7 +480,7 @@ export function SideboardClient({ landNames: landNameList }: { landNames: string
             setSavedOpen(true);
           }}
         >
-          Saved plans
+          My plans
         </button>
         <input
           ref={importRef}
@@ -539,7 +529,7 @@ export function SideboardClient({ landNames: landNameList }: { landNames: string
       <ConfirmDialog
         message={
           clearing
-            ? "Clear everything? This removes the decklist, every matchup and all ticks and hidden cards, and can't be undone. Export first if you want a copy."
+            ? "Clear everything? This removes the decklist, every matchup and all ticks and hidden cards, and can't be undone. Save it under My plans or export it to a file first if you want a copy."
             : null
         }
         confirmLabel="Clear all"
@@ -583,6 +573,10 @@ export function SideboardClient({ landNames: landNameList }: { landNames: string
           }}
           onDelete={setDeleting}
           onExport={exportJson}
+          onImport={() => {
+            setSavedOpen(false);
+            importRef.current?.click();
+          }}
           onClose={() => setSavedOpen(false)}
         />
       ) : null}

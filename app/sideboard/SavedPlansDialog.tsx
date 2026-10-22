@@ -5,14 +5,15 @@ import { noAutofill } from "./noAutofill";
 import type { SavedPlan } from "./saves";
 import styles from "./sideboard.module.css";
 
-// The plans saved in this browser: a name box to save the current plan under, and each save with
-// buttons to load or delete it. Mounted only while it is open, so the name box starts empty.
+// Where plans are kept: the ones saved in this browser (a name box to save the current plan under,
+// and each save with buttons to load or delete it), and files, the one permanent copy. Mounted only while it is open, so the name box starts empty.
 export function SavedPlansDialog({
   saves,
   onSave,
   onLoad,
   onDelete,
   onExport,
+  onImport,
   onClose,
 }: {
   saves: SavedPlan[];
@@ -20,6 +21,7 @@ export function SavedPlansDialog({
   onLoad: (save: SavedPlan) => void;
   onDelete: (save: SavedPlan) => void;
   onExport: () => void;
+  onImport: () => void;
   onClose: () => void;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -33,9 +35,9 @@ export function SavedPlansDialog({
   }, []);
 
   return (
-    <dialog ref={dialogRef} className={`${styles.dialog} ${styles.dialogWide}`} aria-label="Saved plans" onClose={onClose}>
+    <dialog ref={dialogRef} className={`${styles.dialog} ${styles.dialogWide}`} aria-label="My plans" onClose={onClose}>
       <div className={styles.dialogHead}>
-        <strong>Saved plans</strong>
+        <strong>My plans</strong>
         <button type="button" className={styles.btn} onClick={onClose}>
           Close
         </button>
@@ -63,11 +65,8 @@ export function SavedPlansDialog({
         </button>
       </form>
       <p className={styles.savesNote}>
-        Saved plans live in this browser only. Clearing site data deletes them, and so does a different browser or
-        device. Export is the only permanent copy.{" "}
-        <button type="button" className={styles.btn} onClick={onExport}>
-          Export
-        </button>
+        Saved plans live in this browser only. Clearing site data deletes them, and they don’t follow you to another
+        browser or device. A file is the only permanent copy.
       </p>
       {saves.length === 0 ? (
         <p className={styles.empty}>Nothing saved yet.</p>
@@ -90,6 +89,14 @@ export function SavedPlansDialog({
           ))}
         </ul>
       )}
+      <div className={styles.dialogHead} style={{ marginTop: 12, marginBottom: 0 }}>
+        <button type="button" className={styles.btn} onClick={onExport}>
+          Export to file
+        </button>
+        <button type="button" className={styles.btn} onClick={onImport}>
+          Import from file
+        </button>
+      </div>
     </dialog>
   );
 }
