@@ -5,7 +5,7 @@ import { actionError, actionOk, type ActionResult } from "@/lib/actionResult";
 import { isShareLink, randomShortName } from "@/lib/shareLink";
 
 // Public, as the sideboard guide is: swaps a share link for an is.gd one, which needs no account or
-// key, named thoughtcast plus random characters. Only this site's own share links are sent on.
+// key, named thoughtcast_ plus random characters. Only this site's own share links are sent on.
 // is.gd reports a refusal in a 200 reply.
 export async function shortenShareLinkAction(link: string): Promise<ActionResult<string>> {
   if (!isShareLink(link, (await headers()).get("host"))) {

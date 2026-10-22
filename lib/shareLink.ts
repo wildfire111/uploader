@@ -15,10 +15,10 @@ export function isShareLink(link: string, host: string | null): boolean {
 }
 
 const ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-const NAME_PREFIX = "thoughtcast";
+const NAME_PREFIX = "thoughtcast_";
 const SUFFIX_LENGTH = 6;
 
-// "thoughtcast" and six random base62 characters, the usual shape for a short id (62^6 is 56 billion)
+// "thoughtcast_" and six random base62 characters, the usual shape for a short id (62^6 is 56 billion)
 export function randomShortName(): string {
   let suffix = "";
   while (suffix.length < SUFFIX_LENGTH) {

@@ -19,9 +19,9 @@ describe("isShareLink", () => {
 });
 
 describe("randomShortName", () => {
-  it("is the prefix and six letters or digits, and differs between calls", () => {
+  it("is the prefix, an underscore and six letters or digits, and differs between calls", () => {
     const names = Array.from({ length: 20 }, randomShortName);
-    expect(names.every((name) => /^thoughtcast[0-9A-Za-z]{6}$/.test(name))).toBe(true);
+    expect(names.every((name) => /^thoughtcast_[0-9A-Za-z]{6}$/.test(name))).toBe(true);
     expect(new Set(names).size).toBe(20);
   });
 });
