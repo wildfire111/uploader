@@ -234,6 +234,13 @@ export function Grid({ plan, printView, onPlan, onDelete, onAdd, focusId, onFocu
                           defaultValue={matchup.label}
                           placeholder="Name"
                           aria-label="Matchup name"
+                          // keeps password managers from offering to fill it: autoComplete for the
+                          // browser, then the opt-outs 1Password, LastPass, Bitwarden and Dashlane each read
+                          autoComplete="off"
+                          data-1p-ignore
+                          data-lpignore="true"
+                          data-bwignore
+                          data-form-type="other"
                           onInput={(event) => {
                             event.currentTarget.parentElement?.setAttribute("data-value", event.currentTarget.value);
                           }}
