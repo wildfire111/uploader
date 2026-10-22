@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isShareLink } from "./shareLink";
+import { isShareLink, randomShortName } from "./shareLink";
 
 describe("isShareLink", () => {
   it("accepts a share link on this host", () => {
@@ -15,5 +15,13 @@ describe("isShareLink", () => {
   it("rejects text that is not a URL and links that are too long", () => {
     expect(isShareLink("not a url", "example.com")).toBe(false);
     expect(isShareLink(`https://example.com/sideboard#plan=${"a".repeat(5000)}`, "example.com")).toBe(false);
+  });
+});
+
+describe("randomShortName", () => {
+  it("is the prefix and six letters or digits, and differs between calls", () => {
+    const names = Array.from({ length: 20 }, randomShortName);
+    expect(names.every((name) => /^thoughtcast[0-9A-Za-z]{6}$/.test(name))).toBe(true);
+    expect(new Set(names).size).toBe(20);
   });
 });
