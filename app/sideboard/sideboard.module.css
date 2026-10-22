@@ -219,7 +219,7 @@
 }
 
 .tintHover {
-  background: #c6ecd8;
+  background: #fde0c4;
 }
 
 .tint::before {
@@ -257,7 +257,7 @@
 
 /* a sideboard column is tinted blue, so its hover drops the tint to stay green */
 .row td.colHover {
-  background-color: #c6ecd8;
+  background-color: #fde0c4;
   background-image: none;
 }
 
