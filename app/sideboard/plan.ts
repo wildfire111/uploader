@@ -12,7 +12,6 @@ export type Matchup = {
 
 export type Plan = {
   v: 1;
-  title: string;
   deckText: string;
   // the sideboard first, then the maindeck, each in the order the player has put them
   columns: Column[];
@@ -28,11 +27,7 @@ export const MAX_SIZE = 96;
 export const DEFAULT_SIZE = 44;
 
 export function createPlan(): Plan {
-  return { v: 1, title: "", deckText: "", columns: [], hidden: [], matchups: [], size: DEFAULT_SIZE };
-}
-
-export function setTitle(plan: Plan, title: string): Plan {
-  return { ...plan, title };
+  return { v: 1, deckText: "", columns: [], hidden: [], matchups: [], size: DEFAULT_SIZE };
 }
 
 export function setSize(plan: Plan, size: number): Plan {

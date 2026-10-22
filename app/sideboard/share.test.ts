@@ -7,14 +7,13 @@ import {
   moveColumn,
   setDecklist,
   setSize,
-  setTitle,
   type Plan,
 } from "./plan";
 import { decodeShare, encodeShare, parsePlan, planToJson } from "./share";
 
 function samplePlan(): Plan {
   let plan = setDecklist(createPlan(), "1 Flash\n1 Black Lotus\n2 Island\n\nSideboard\n1 Lightning Bolt\n1 Toxic Deluge");
-  plan = addMatchup(addMatchup(setTitle(plan, "Legacy Doomsday"), "Cradle"), "Oracle");
+  plan = addMatchup(addMatchup(plan, "Cradle"), "Oracle");
   plan = cycleCell(plan, plan.matchups[0].id, plan.columns[0].id);
   plan = cycleCell(cycleCell(plan, plan.matchups[1].id, plan.columns[2].id), plan.matchups[1].id, plan.columns[2].id);
   plan = moveColumn(plan, plan.columns[0].id, plan.columns[1].id);
@@ -50,6 +49,11 @@ describe("planToJson and parsePlan", () => {
       matchups: plan.matchups.map((matchup) => ({ ...matchup, cells: { ...matchup.cells, "main:Nothing#0": "in" } })),
     };
     expect(parsePlan(JSON.stringify(tampered))).toEqual({ ok: true, plan });
+  });
+
+  it("loads a plan saved with a deck name, without the name", () => {
+    const result = parsePlan(JSON.stringify({ ...createPlan(), title: "Legacy Doomsday" }));
+    expect(result.ok && result.plan).toEqual(createPlan());
   });
 
   it("loads a plan saved with matchup notes, without the notes", () => {

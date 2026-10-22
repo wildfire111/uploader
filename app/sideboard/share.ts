@@ -42,9 +42,8 @@ export function parsePlan(text: string): PlanResult {
   if (!isRecord(value) || value.v !== 1) {
     return { ok: false, error: BAD_PLAN };
   }
-  const { title, deckText, columns, hidden, matchups, size } = value;
+  const { deckText, columns, hidden, matchups, size } = value;
   if (
-    typeof title !== "string" ||
     typeof deckText !== "string" ||
     !Array.isArray(columns) ||
     !columns.every((column) => isRecord(column) && typeof column.id === "string") ||
@@ -63,7 +62,6 @@ export function parsePlan(text: string): PlanResult {
   const plan = setDecklist(
     {
       v: 1,
-      title,
       deckText,
       columns: columns as Plan["columns"],
       hidden,

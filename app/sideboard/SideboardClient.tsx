@@ -12,7 +12,6 @@ import {
   removeMatchup,
   setDecklist,
   setSize,
-  setTitle,
   showAllColumns,
   type Matchup,
   type Plan,
@@ -176,7 +175,7 @@ export function SideboardClient() {
     const url = URL.createObjectURL(new Blob([planToJson(plan)], { type: "application/json" }));
     const link = document.createElement("a");
     link.href = url;
-    link.download = `${plan.title.trim() || "sideboard-plan"}.json`;
+    link.download = "sideboard-plan.json";
     link.click();
     URL.revokeObjectURL(url);
   }
@@ -221,7 +220,6 @@ export function SideboardClient() {
         </div>
         <div className={styles.paper}>
           <div ref={paperRef} className={styles.paperInner}>
-            {plan.title.trim() ? <h1 className={styles.paperTitle}>{plan.title}</h1> : null}
             <Grid plan={plan} printView onPlan={setPlan} onDelete={onDelete} onAdd={addRow} focusId={null} onFocused={clearFocus} />
           </div>
         </div>
@@ -231,16 +229,6 @@ export function SideboardClient() {
 
   return (
     <div className={styles.page}>
-      <div className={styles.toolbar}>
-        <input
-          className={`${styles.input} ${styles.title}`}
-          value={plan.title}
-          placeholder="Deck name"
-          aria-label="Deck name"
-          onChange={(event) => setPlan((current) => setTitle(current, event.target.value))}
-        />
-      </div>
-
       <details className={styles.deck} open={!hasColumns}>
         <summary>Decklist</summary>
         <textarea

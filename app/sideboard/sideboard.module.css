@@ -24,12 +24,6 @@
   margin-bottom: 12px;
 }
 
-.title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  width: min(100%, 520px);
-}
-
 .input,
 .textarea {
   background: #fff;
@@ -542,13 +536,6 @@
   transform: scale(var(--scale, 1));
   width: max-content;
   padding: 4px 0 0;
-}
-
-.paperTitle {
-  font-size: 1.4rem;
-  font-weight: 700;
-  margin: 0 0 8px 8px;
-  color: #111;
 }
 
 .printView .scroller {

@@ -31,7 +31,8 @@ function names(plan: Plan): string[] {
 
 describe("createPlan", () => {
   it("starts empty", () => {
-    expect(createPlan()).toMatchObject({ v: 1, title: "", deckText: "", columns: [], hidden: [], matchups: [] });
+    expect(createPlan()).toMatchObject({ v: 1, deckText: "", columns: [], hidden: [], matchups: [] });
+    expect(createPlan()).not.toHaveProperty("title");
   });
 });
 
