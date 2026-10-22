@@ -82,6 +82,7 @@ export function SideboardClient({ landNames: landNameList }: { landNames: string
     null,
   );
   const undoTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const messageTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const started = useRef(false);
   const viewBeforePrint = useRef<View>("edit");
   const paperRef = useRef<HTMLDivElement>(null);
@@ -203,9 +204,32 @@ export function SideboardClient({ landNames: landNameList }: { landNames: string
     setDraft(next.deckText);
   }
 
+  // builds the grid from the decklist (a first paste or an update), and says how many lands it hid
+  function applyDecklist() {
+    const next = setDecklist(
+      plan,
+      draft,
+      (name) => isBasicLand(name) || isListedLand(landNames, name),
+    );
+    const alreadyHidden = new Set(plan.hidden);
+    const hiddenNow = next.hidden.filter((id) => !alreadyHidden.has(id)).length;
+    setPlan(next);
+    if (hiddenNow > 0) {
+      const text = `${hiddenNow} ${hiddenNow === 1 ? "land" : "lands"} automatically hidden`;
+      setMessage({ text });
+      clearTimeout(messageTimer.current);
+      // goes by itself, unless something else has been said in the meantime
+      messageTimer.current = setTimeout(
+        () => setMessage((current) => (current?.text === text ? null : current)),
+        UNDO_MS,
+      );
+    }
+  }
+
   // back to a blank page, as on the first visit
   function clearAll() {
     clearTimeout(undoTimer.current);
+    clearTimeout(messageTimer.current);
     replacePlan(createPlan());
     setDeckOpen(null);
     setUndo(null);
@@ -436,15 +460,7 @@ export function SideboardClient({ landNames: landNameList }: { landNames: string
             <button
               type="button"
               className={`${styles.btn} ${styles.btnPrimary}`}
-              onClick={() =>
-                setPlan((current) =>
-                  setDecklist(
-                    current,
-                    draft,
-                    (name) => isBasicLand(name) || isListedLand(landNames, name),
-                  ),
-                )
-              }
+              onClick={applyDecklist}
             >
               {hasColumns ? "Update decklist" : "Build grid"}
             </button>
