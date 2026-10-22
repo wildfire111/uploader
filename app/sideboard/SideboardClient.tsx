@@ -10,6 +10,7 @@ import {
   type ChangeEvent,
 } from "react";
 import { flushSync } from "react-dom";
+import { shortenShareLinkAction } from "@/lib/actions/shareLink";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { Grid } from "./Grid";
 import { HiddenDialog } from "./HiddenDialog";
@@ -239,13 +240,18 @@ export function SideboardClient({ landNames: landNameList }: { landNames: string
   }
 
   async function share() {
-    const url = `${window.location.origin}${window.location.pathname}${SHARE_PREFIX}${await encodeShare(plan)}`;
+    const longUrl = `${window.location.origin}${window.location.pathname}${SHARE_PREFIX}${await encodeShare(plan)}`;
+    setMessage({ text: "Making the share link…" });
+    const short = await shortenShareLinkAction(longUrl);
+    const url = short.ok ? short.data : longUrl;
     setShareUrl(url);
+    // the full link still works when the shortener doesn't
+    const suffix = short.ok ? "" : ` (${short.error} This is the full link.)`;
     try {
       await navigator.clipboard.writeText(url);
-      setMessage({ text: "Share link copied." });
+      setMessage({ text: `Share link copied.${suffix}` });
     } catch {
-      setMessage({ text: "Copy the share link below." });
+      setMessage({ text: `Copy the share link below.${suffix}` });
     }
   }
 
