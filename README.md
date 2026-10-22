@@ -29,7 +29,6 @@ Copy `.env.example` to `.env.local` and fill in the values (see "One-time accoun
 | `GMAIL_USER` / `GMAIL_APP_PASSWORD` | Dedicated Gmail account Nodemailer uses to send magic-link emails. |
 | `MOXFIELD_TOKEN_ENCRYPTION_KEY` | Encrypts the Moxfield token stored in the database (AES-256-GCM). Generate with `openssl rand -base64 32`. **Use a different key for development and production.** If it is lost or changed, the stored token becomes unreadable and an admin has to reconnect (see below) — nothing else is lost. |
 | `MOXFIELD_DELAY_MS` | Optional. Delay in ms before each Moxfield API call. Defaults to `1000`, to stay within Moxfield's one-request-per-second condition. Each entry makes about two calls (four when the deck has a companion), so a 100-entry event takes roughly 5 minutes to publish. |
-| `TINYURL_API_TOKEN` | Optional. A TinyURL API token. The sideboard guide's **Share link** button sends the link to TinyURL and shares the short one. Without it, or if TinyURL fails, the full link is shared instead. |
 
 None of these use the `NEXT_PUBLIC_` prefix — this app has no browser-side configuration; login, database access, and email sending all happen on the server. The Moxfield account's token and the User-Agent Moxfield issued are **not** environment variables: an admin enters them under Moxfield Settings (below), and they are stored encrypted in the database.
 

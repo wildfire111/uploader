@@ -14,6 +14,6 @@ describe("isShareLink", () => {
 
   it("rejects text that is not a URL and links that are too long", () => {
     expect(isShareLink("not a url", "example.com")).toBe(false);
-    expect(isShareLink(`https://example.com/sideboard#plan=${"a".repeat(9000)}`, "example.com")).toBe(false);
+    expect(isShareLink(`https://example.com/sideboard#plan=${"a".repeat(5000)}`, "example.com")).toBe(false);
   });
 });

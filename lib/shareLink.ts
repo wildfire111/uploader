@@ -1,4 +1,5 @@
-const MAX_LENGTH = 8000;
+// is.gd refuses a link longer than this
+const MAX_LENGTH = 5000;
 
 // the shortener is open to anyone on the public page, so it only takes this site's own share links
 export function isShareLink(link: string, host: string | null): boolean {
