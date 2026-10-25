@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { markDecklistLines } from "./analyse";
-import { index, knownCards, aliasIndex } from "./fixtures";
+import { index, knownCards, aliasIndex, reserved } from "./fixtures";
 import { classifyLines } from "./parse";
 import type { CheckLists } from "./types";
 
@@ -98,5 +98,36 @@ describe("markDecklistLines", () => {
 
   it("gives no points without a points list", () => {
     expect(markDecklistLines("1 Flash\n", { ...lists, points: null })[0].points).toBeUndefined();
+  });
+
+  it("leaves the line being typed plain, whatever it holds so far", () => {
+    const marked = (raw: string) => markDecklistLines(raw, lists).map((line) => `${line.role}:${line.board}`);
+    // just the quantity, which would otherwise be read as a line with no name
+    expect(marked("1 Flash\n1 ")).toEqual(["card:main", "blank:main"]);
+    expect(marked("1 Flash\nSideboard\n1 ")).toEqual(["card:main", "divider:side", "blank:side"]);
+    expect(marked("1 Flash\nSideb")).toEqual(["card:main", "blank:main"]);
+    expect(markDecklistLines("1 Flash\n1 Flash", lists).map((line) => line.repeated)).toEqual([undefined, undefined]);
+    expect(markDecklistLines("1 Flash\n1 Flash", lists, true).map((line) => line.repeated)).toEqual([true, true]);
+  });
+
+  it("flags Reserved List cards when the list is more than 7 points", () => {
+    const withReserved = { ...lists, reserved };
+    expect(markDecklistLines("1 Black Lotus\n1 Flash\n", withReserved).map((line) => line.reserved)).toEqual([
+      true,
+      undefined,
+      undefined,
+    ]);
+    expect(markDecklistLines("1 Black Lotus\n2 Lightning Bolt\n", withReserved).some((line) => line.reserved)).toBe(false);
+  });
+
+  it("does not flag Reserved List cards without the list or points", () => {
+    expect(markDecklistLines("1 Black Lotus\n1 Flash\n", lists).some((line) => line.reserved)).toBe(false);
+    expect(markDecklistLines("1 Black Lotus\n1 Flash\n", { ...lists, reserved, points: null }).some((line) => line.reserved)).toBe(false);
+  });
+
+  it("counts the points of the line being typed only once it is finished", () => {
+    const withReserved = { ...lists, reserved };
+    expect(markDecklistLines("1 Black Lotus\n2 Lightning Bolt\n1 Flash", withReserved).some((line) => line.reserved)).toBe(false);
+    expect(markDecklistLines("1 Black Lotus\n2 Lightning Bolt\n1 Flash", withReserved, true)[0].reserved).toBe(true);
   });
 });

@@ -27,8 +27,8 @@ function classNameFor(line: MarkedLine): string {
   if (line.board === "side") {
     classes.push("dl-side");
   }
-  if (line.unknown) {
-    classes.push("dl-unknown");
+  if (line.unknown || line.reserved) {
+    classes.push("dl-error");
   } else if (line.repeated) {
     classes.push("dl-repeated");
   }

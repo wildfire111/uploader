@@ -294,14 +294,12 @@
     opacity: 0.55;
   }
 
-  .dl-unknown {
+  .dl-error {
     background: color-mix(in srgb, var(--color-danger) 24%, transparent);
-    text-decoration: underline wavy var(--color-danger);
   }
 
   .dl-repeated {
     background: color-mix(in srgb, var(--color-warn) 22%, transparent);
-    text-decoration: underline wavy var(--color-warn);
   }
 
   /* the side note at the right: points, companion, and the sideboard size on its divider */

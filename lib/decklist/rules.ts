@@ -5,6 +5,8 @@ const MAINDECK_SIZE = 60;
 const SIDEBOARD_SIZE = 15;
 const DEFAULT_MIN_POINTS = 7;
 const DEFAULT_MAX_POINTS = 8;
+// what a list with any Reserved List card can total
+export const RESERVED_MAX_POINTS = DEFAULT_MIN_POINTS;
 
 type PointRange = { min: number; max: number; reason: string | null };
 
@@ -22,7 +24,7 @@ export function allowedPointRange(analysis: DecklistAnalysis): PointRange {
   if (analysis.reservedCards.length > 0) {
     return {
       min: DEFAULT_MIN_POINTS,
-      max: DEFAULT_MIN_POINTS,
+      max: RESERVED_MAX_POINTS,
       reason: `it has Reserved List cards (${describeCards(analysis.reservedCards)})`,
     };
   }
