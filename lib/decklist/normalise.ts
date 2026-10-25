@@ -23,3 +23,15 @@ export function cardFaces(name: string): string[] {
 export function frontFace(name: string): string {
   return cardFaces(name)[0];
 }
+
+// the only cards that may appear more than once, as normaliseCardName writes them
+const BASIC_LANDS = new Set(
+  ["plains", "island", "swamp", "mountain", "forest", "wastes"].flatMap((land) => [
+    land,
+    `snow covered ${land}`,
+  ])
+);
+
+export function isBasicLand(name: string): boolean {
+  return BASIC_LANDS.has(frontFace(name));
+}

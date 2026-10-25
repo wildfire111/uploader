@@ -1,4 +1,4 @@
-import { frontFace } from "./normalise";
+import { frontFace, isBasicLand } from "./normalise";
 import type { DecklistAnalysis, DecklistWarning } from "./types";
 
 const MAINDECK_SIZE = 60;
@@ -78,14 +78,6 @@ const deckSizeRule: Rule = (analysis) => {
   return warnings;
 };
 
-// the only cards that may appear more than once, as normaliseCardName writes them
-const BASIC_LANDS = new Set(
-  ["plains", "island", "swamp", "mountain", "forest", "wastes"].flatMap((land) => [
-    land,
-    `snow covered ${land}`,
-  ])
-);
-
 const MAX_NAMED_DUPLICATES = 5;
 
 // copies are counted across the maindeck and sideboard together
@@ -94,7 +86,7 @@ export const singletonRule: Rule = (analysis) => {
   for (const card of analysis.cards) {
     // "Fire // Ice", "Fire/Ice" and "Fire" are one card, so copies are counted by front face
     const key = frontFace(card.name);
-    if (BASIC_LANDS.has(key)) {
+    if (isBasicLand(card.name)) {
       continue;
     }
     const seen = copies.get(key);

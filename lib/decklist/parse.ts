@@ -1,4 +1,4 @@
-import { normaliseCardName } from "./normalise";
+import { isBasicLand, normaliseCardName } from "./normalise";
 import type { ParsedLine } from "./types";
 
 const SIDEBOARD_LINE = /sideboard/i;
@@ -90,7 +90,15 @@ export function scanDecklist(raw: string, isCardName?: (name: string) => boolean
     }
   }
 
-  return withoutListedCompanions(lines);
+  return withoutListedCompanions(withoutSectionLabels(lines));
+}
+
+// Lists that write "Instants:" or "Creatures" above their cards give those lines no quantity, so
+// once any card that isn't a basic land has one, the lines without are labels and not cards. A
+// singleton list may leave every quantity off except the basics', so it keeps them all.
+function withoutSectionLabels(lines: ScannedLine[]): ScannedLine[] {
+  const quantified = lines.some((line) => line.quantityText !== "" && !isBasicLand(line.name));
+  return quantified ? lines.filter((line) => line.quantityText !== "" || line.companion) : lines;
 }
 
 function isSideboardLine(line: string): boolean {
