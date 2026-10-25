@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getEntriesForEvent } from "@/lib/queries/entries";
-import { getEventById, setEventStatus } from "@/lib/queries/events";
+import { getEventById, setEventStatusAndRelock } from "@/lib/queries/events";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser();
@@ -32,6 +32,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     );
   }
 
-  const updated = await setEventStatus(id, "published");
+  const updated = await setEventStatusAndRelock(id, "published");
   return NextResponse.json({ event: updated });
 }

@@ -1,5 +1,5 @@
 import { formatDisplayDate } from "@/lib/formatDate";
-import { getStatusLabel } from "@/lib/statusLabel";
+import { getStatusLabelWithProgress } from "@/lib/statusLabel";
 import type { Event } from "@/lib/types";
 import {
   MAX_ATTENDANCE,
@@ -14,10 +14,16 @@ import type { EventDetailsEditor } from "./useEventDetails";
 export function EventHeader({
   event,
   details,
+  entryCount,
+  publishedCount,
   canEdit,
   canDelete,
   canSubmit,
   canPublish,
+  canReopen,
+  canReturnToDraft,
+  canUnlock,
+  detailsLocked,
   editInProgress,
   isPending,
   isPublishing,
@@ -25,13 +31,23 @@ export function EventHeader({
   onDelete,
   onSubmit,
   onPublish,
+  onReopen,
+  onReturnToDraft,
+  onUnlock,
 }: {
   event: Event;
   details: EventDetailsEditor;
+  entryCount: number;
+  publishedCount: number;
   canEdit: boolean;
   canDelete: boolean;
   canSubmit: boolean;
   canPublish: boolean;
+  canReopen: boolean;
+  canReturnToDraft: boolean;
+  canUnlock: boolean;
+  // the details went out with published lists and haven't been unlocked
+  detailsLocked: boolean;
   editInProgress: boolean;
   isPending: boolean;
   isPublishing: boolean;
@@ -40,6 +56,9 @@ export function EventHeader({
   onDelete: () => void;
   onSubmit: () => void;
   onPublish: () => void;
+  onReopen: () => void;
+  onReturnToDraft: () => void;
+  onUnlock: () => void;
 }) {
   const { fields, setFields } = details;
   return (
@@ -99,10 +118,18 @@ export function EventHeader({
             </div>
           </div>
         ) : (
-          <h1>
-            {event.name} &middot; {formatDisplayDate(event.date)} &middot; {event.attendance}{" "}
-            players &middot; {getStatusLabel(event.status)}
-          </h1>
+          <>
+            <h1>
+              {event.name} &middot; {formatDisplayDate(event.date)} &middot; {event.attendance}{" "}
+              players &middot;{" "}
+              {getStatusLabelWithProgress(event.status, publishedCount, entryCount)}
+            </h1>
+            {detailsLocked ? (
+              <p>
+                The details are locked because some lists are already on Moxfield with them.
+              </p>
+            ) : null}
+          </>
         )}
       </div>
 
@@ -111,6 +138,21 @@ export function EventHeader({
           {canEdit ? (
             <button type="button" onClick={details.start} disabled={editInProgress}>
               Edit details
+            </button>
+          ) : null}
+          {canUnlock ? (
+            <button type="button" onClick={onUnlock} disabled={isPending || editInProgress}>
+              Unlock details
+            </button>
+          ) : null}
+          {canReopen ? (
+            <button type="button" onClick={onReopen} disabled={isPending}>
+              Reopen
+            </button>
+          ) : null}
+          {canReturnToDraft ? (
+            <button type="button" onClick={onReturnToDraft} disabled={isPending || editInProgress}>
+              Return to draft
             </button>
           ) : null}
           {canDelete ? (

@@ -10,6 +10,8 @@ export type Event = {
   createdBy: string;
   createdAt: string;
   moxfieldFolderId: string | null;
+  // an admin has unlocked the details of an event that has lists on Moxfield; cleared on publish
+  metadataUnlocked: boolean;
 };
 
 export type Entry = {
@@ -34,6 +36,7 @@ export type AllowedUser = {
 
 export type EventListItem = Event & {
   entryCount: number;
+  publishedCount: number;
 };
 
 // what a person types for one result

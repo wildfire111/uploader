@@ -2,11 +2,10 @@ import { describe, expect, it } from "vitest";
 import { parseDecklist } from "./parse";
 
 describe("parseDecklist", () => {
-  it("reads quantities, 1x and a missing quantity", () => {
-    expect(parseDecklist("1 Flash\n2x Lightning Bolt\nBlack Lotus")).toEqual([
+  it("reads quantities and 1x", () => {
+    expect(parseDecklist("1 Flash\n2x Lightning Bolt")).toEqual([
       { name: "Flash", quantity: 1, board: "main" },
       { name: "Lightning Bolt", quantity: 2, board: "main" },
-      { name: "Black Lotus", quantity: 1, board: "main" },
     ]);
   });
 
@@ -182,5 +181,40 @@ describe("parseDecklist", () => {
         expect(lines.filter((line) => line.companion)).toHaveLength(2);
       });
     });
+  });
+});
+
+describe("lines without a quantity", () => {
+  const names = (raw: string) => parseDecklist(raw).map((line) => line.name);
+
+  it("ignores section labels once a card that isn't a basic land has a quantity", () => {
+    expect(names(["Instants:", "4 Lightning Bolt", "Sorceries:", "2 Cultivate", "Creatures"].join("\n"))).toEqual([
+      "Lightning Bolt",
+      "Cultivate",
+    ]);
+  });
+
+  it("keeps them at quantity 1 when only basic lands have a quantity", () => {
+    expect(parseDecklist(["Black Lotus", "Sol Ring", "10 Forest", "2 Snow-Covered Island"].join("\n"))).toEqual([
+      { name: "Black Lotus", quantity: 1, board: "main" },
+      { name: "Sol Ring", quantity: 1, board: "main" },
+      { name: "Forest", quantity: 10, board: "main" },
+      { name: "Snow-Covered Island", quantity: 2, board: "main" },
+    ]);
+  });
+
+  it("keeps them when nothing has a quantity", () => {
+    expect(names(["Black Lotus", "Sol Ring"].join("\n"))).toEqual(["Black Lotus", "Sol Ring"]);
+  });
+
+  it("counts a quantity in the sideboard", () => {
+    expect(names(["Instants:", "Sideboard", "SB: 2 Negate"].join("\n"))).toEqual(["Negate"]);
+  });
+
+  it("keeps a companion written without a quantity", () => {
+    expect(parseDecklist(["4 Lightning Bolt", "Spells:", "Companion", "Lurrus of the Dream-Den"].join("\n"))).toEqual([
+      { name: "Lightning Bolt", quantity: 4, board: "main" },
+      { name: "Lurrus of the Dream-Den", quantity: 1, board: "side", companion: true },
+    ]);
   });
 });

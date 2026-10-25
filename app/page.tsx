@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireUser } from "@/lib/guards";
 import { formatDisplayDate } from "@/lib/formatDate";
 import { getEventsForUser } from "@/lib/queries/events";
-import { getStatusLabel } from "@/lib/statusLabel";
+import { getStatusLabelWithProgress } from "@/lib/statusLabel";
 
 export default async function EventsPage({
   searchParams,
@@ -49,7 +49,9 @@ export default async function EventsPage({
               </td>
               <td>{formatDisplayDate(event.date)}</td>
               <td>{event.entryCount}</td>
-              <td>{getStatusLabel(event.status)}</td>
+              <td>
+                {getStatusLabelWithProgress(event.status, event.publishedCount, event.entryCount)}
+              </td>
               {user.isAdmin ? (
                 <td>{event.createdBy === user.email ? "(you)" : event.createdBy}</td>
               ) : null}

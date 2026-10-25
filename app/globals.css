@@ -251,8 +251,61 @@
     @apply min-h-0 lg:col-start-2 lg:row-start-1 lg:row-span-2;
   }
 
-  .entry-form-decklist textarea {
+  .entry-form-decklist .decklist-editor {
     @apply min-h-[12em] flex-1;
+  }
+
+  /* the textarea sits over a copy of its text that carries the shading; the textarea's own text is
+     hidden so only the caret and selection show. Both scroll with a reserved gutter so their lines
+     wrap at the same width. */
+  .decklist-editor {
+    @apply relative;
+  }
+
+  .decklist-editor textarea {
+    @apply absolute inset-0 h-full w-full bg-transparent;
+    color: transparent;
+    caret-color: var(--color-ink);
+    scrollbar-gutter: stable;
+  }
+
+  .decklist-backdrop {
+    @apply pointer-events-none absolute inset-0 overflow-hidden rounded-md border border-line bg-panel px-2 py-1.5 font-mono whitespace-pre-wrap;
+    overflow-wrap: break-word;
+    scrollbar-gutter: stable;
+  }
+
+  /* each line runs the full width of the box, through its padding */
+  .dl-line {
+    @apply relative -mx-2 px-2;
+  }
+
+  .dl-side {
+    background: color-mix(in srgb, var(--color-brand) 14%, transparent);
+  }
+
+  .dl-divider {
+    background: color-mix(in srgb, var(--color-brand) 32%, transparent);
+    box-shadow: inset 0 1px 0 var(--color-brand);
+  }
+
+  .dl-ignored {
+    @apply text-muted;
+    opacity: 0.55;
+  }
+
+  .dl-error {
+    background: color-mix(in srgb, var(--color-danger) 24%, transparent);
+  }
+
+  .dl-repeated {
+    background: color-mix(in srgb, var(--color-warn) 22%, transparent);
+  }
+
+  /* the side note at the right: points, companion, and the sideboard size on its divider */
+  .dl-line[data-tag]::after {
+    content: attr(data-tag);
+    @apply pointer-events-none absolute top-0 right-2 text-[0.75em] leading-[inherit] text-muted;
   }
 
   .entry-form-actions {

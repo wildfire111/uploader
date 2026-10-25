@@ -30,6 +30,7 @@ function makeEvent(overrides: Partial<Event> = {}): Event {
     createdBy: "creator@example.com",
     createdAt: "2026-10-01T00:00:00.000Z",
     moxfieldFolderId: null,
+    metadataUnlocked: false,
     ...overrides,
   };
 }

@@ -1,12 +1,64 @@
 import { pointsFor, resolveAlias } from "./lists";
-import { normaliseCardName } from "./normalise";
-import { parseDecklist } from "./parse";
+import { frontFace, normaliseCardName } from "./normalise";
+import { classifyLines, parseDecklist, type ClassifiedLine } from "./parse";
+import { RESERVED_MAX_POINTS, repeatedCards } from "./rules";
 import type { Board, CardNameSet, CheckLists, DecklistAnalysis, ParsedLine } from "./types";
 
 // Settles whether a line that mentions "companion" is a card (e.g. "Faithful Companion") or the
 // marker above the companion. Without the card-name list every such line is taken as the marker.
 export function cardNameCheck({ cardNames, aliases }: CheckLists): ((name: string) => boolean) | undefined {
   return cardNames ? (name) => cardNames.has(normaliseCardName(resolveAlias(aliases, name))) : undefined;
+}
+
+// A line of the text with what the checks make of it. While the user is typing, the last line is
+// left plain: it is probably half written ("1 " or "1 Lightning Bo"), so it is not read, flagged
+// or counted. Pass lastLineFinished once nobody is typing (or it is a saved list) to read it too.
+export type MarkedLine = ClassifiedLine & {
+  unknown?: true;
+  repeated?: true;
+  // a Reserved List card in a list that is too many points to have one
+  reserved?: true;
+  // the points for one copy, when there is a points list and it is more than 0
+  points?: number;
+};
+
+export function markDecklistLines(raw: string, lists: CheckLists, lastLineFinished = false): MarkedLine[] {
+  const { points, reserved, cardNames, aliases, companions } = lists;
+  const lines: MarkedLine[] = classifyLines(raw, cardNameCheck(lists)).map((line) => ({ ...line }));
+  if (!lastLineFinished) {
+    const last = lines.length - 1;
+    lines[last] = { role: "blank", board: lines[last - 1]?.board ?? "main" };
+  }
+  const named = lines.flatMap((line) =>
+    line.card ? [{ line, card: line.card, name: resolveAlias(aliases, line.card.name) }] : []
+  );
+  const repeated = repeatedCards(
+    named.map(({ card, name }) => ({ name, quantity: card.companion ? 1 : card.quantity }))
+  );
+  let total = 0;
+  for (const { line, card, name } of named) {
+    const undeclaredCompanion = !card.companion && companions?.has(normaliseCardName(name)) === true;
+    const value = points && !undeclaredCompanion ? pointsFor(points, name) : 0;
+    if (value > 0) {
+      line.points = value;
+      total += value * (card.companion ? 1 : card.quantity);
+    }
+    if (cardNames && !cardNames.has(normaliseCardName(name))) {
+      line.unknown = true;
+    }
+    if (repeated.has(frontFace(name))) {
+      line.repeated = true;
+    }
+  }
+  // 8 points is only allowed with no Reserved List cards; with any, the total is 7
+  if (reserved && total > RESERVED_MAX_POINTS) {
+    for (const { line, name } of named) {
+      if (reserved.has(normaliseCardName(name))) {
+        line.reserved = true;
+      }
+    }
+  }
+  return lines;
 }
 
 export function analyseDecklist(raw: string, lists: CheckLists): DecklistAnalysis {
