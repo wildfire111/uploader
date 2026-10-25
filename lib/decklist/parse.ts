@@ -57,6 +57,7 @@ function scan(
   const rawLines = raw.split(/\r?\n/);
   // without a sideboard line, the first blank line after the maindeck starts the sideboard
   const splitOnBlank = !rawLines.some((line) => isSideboardLine(line.trim()));
+  const lastContent = rawLines.findLastIndex((line) => line.trim() !== "");
   let inSideboard = false;
   let companionNext = false;
   let markerIndex = -1;
@@ -66,7 +67,9 @@ function scan(
     const line = rawLine.trim();
     if (line === "") {
       // a marker with nothing after it is just noise from the user's deck software
-      const splits = splitOnBlank && mainSeen && !companionNext;
+      // blank lines at the end have nothing after them to be a sideboard, e.g. the new line after
+      // the card just typed
+      const splits = splitOnBlank && mainSeen && !companionNext && lineIndex < lastContent;
       const starts = splits && !inSideboard;
       if (splits) {
         inSideboard = true;

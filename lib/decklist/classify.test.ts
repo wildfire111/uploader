@@ -21,6 +21,12 @@ describe("classifyLines", () => {
     expect(roles("1 Flash\n\n\n1 Island")).toEqual(["card:main", "divider:side", "blank:side", "card:side"]);
   });
 
+  it("does not split on blank lines at the end, with nothing after them", () => {
+    expect(roles("1 Flash\n")).toEqual(["card:main", "blank:main"]);
+    expect(roles("1 Flash\n\n\n")).toEqual(["card:main", "blank:main", "blank:main", "blank:main"]);
+    expect(roles("1 Flash\n\n1 Island\n")).toEqual(["card:main", "divider:side", "card:side", "blank:side"]);
+  });
+
   it("does not split on a blank line when there is a header", () => {
     expect(roles("1 Flash\n\n1 Island\nSideboard\n1 Bolt")).toEqual([
       "card:main",
