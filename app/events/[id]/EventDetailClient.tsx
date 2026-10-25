@@ -2,14 +2,25 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { deleteEventAction, submitEventAction } from "@/lib/actions/events";
+import {
+  deleteEventAction,
+  reopenEventAction,
+  returnToDraftAction,
+  submitEventAction,
+  unlockMetadataAction,
+} from "@/lib/actions/events";
 import type { AliasList, PointsList } from "@/lib/decklist/types";
 import {
+  areDetailsLocked,
   canDeleteEvent,
   canEditEntry,
   canEditEvent,
+  canEditEventDetails,
   canPublishEvent,
+  canReopenEvent,
+  canReturnToDraft,
   canSubmitEvent,
+  canUnlockMetadata,
 } from "@/lib/permissions";
 import type { AllowedUser, Entry, Event } from "@/lib/types";
 import { EntriesList } from "./EntriesList";
@@ -100,7 +111,45 @@ export function EventDetailClient({
     });
   }
 
+  function reopenEvent() {
+    runAction(startTransition, setActionError, async () => {
+      const result = await reopenEventAction(event.id);
+      if (result.ok) {
+        setEvent(result.data);
+      } else {
+        setActionError(result.error);
+      }
+    });
+  }
+
+  function returnToDraft() {
+    const message =
+      "This hands the event back to the person who created it. You won't be able to see or edit it again until they resubmit it.\n\nReturn it to draft?";
+    if (!window.confirm(message)) return;
+    runAction(startTransition, setActionError, async () => {
+      const result = await returnToDraftAction(event.id);
+      if (!result.ok) {
+        setActionError(result.error);
+      }
+    });
+  }
+
+  function unlockDetails() {
+    const message =
+      "Lists from this event are already on Moxfield with the details as they are now. Changing the details here won't change those lists, or the name of the Moxfield folder they're in. Anything wrong in a published list has to be fixed on Moxfield. The details lock again when you next publish.\n\nUnlock the details?";
+    if (!window.confirm(message)) return;
+    runAction(startTransition, setActionError, async () => {
+      const result = await unlockMetadataAction(event.id);
+      if (result.ok) {
+        setEvent(result.data);
+      } else {
+        setActionError(result.error);
+      }
+    });
+  }
+
   const { selection, editInProgress } = editor;
+  const publishedCount = entries.filter((e) => e.moxfieldDeckId !== null).length;
   const canPublish = canPublishEvent(currentUser, event, entries) && !editInProgress;
   const attendanceWarning = entries.length > event.attendance;
 
@@ -119,10 +168,16 @@ export function EventDetailClient({
       <EventHeader
         event={event}
         details={details}
-        canEdit={pageIsEditable}
+        entryCount={entries.length}
+        publishedCount={publishedCount}
+        canEdit={canEditEventDetails(currentUser, event, entries)}
         canDelete={canDeleteEvent(currentUser, event)}
         canSubmit={canSubmitEvent(currentUser, event, entries) && !editInProgress}
         canPublish={canPublish}
+        canReopen={canReopenEvent(currentUser, event)}
+        canReturnToDraft={canReturnToDraft(currentUser, event)}
+        canUnlock={canUnlockMetadata(currentUser, event, entries)}
+        detailsLocked={pageIsEditable && areDetailsLocked(event, entries)}
         editInProgress={editInProgress}
         isPending={isPending}
         isPublishing={publishing.progress !== null}
@@ -130,6 +185,9 @@ export function EventDetailClient({
         onDelete={deleteEvent}
         onSubmit={submitEvent}
         onPublish={publishing.publish}
+        onReopen={reopenEvent}
+        onReturnToDraft={returnToDraft}
+        onUnlock={unlockDetails}
       />
 
       {canPublish && publishAccount ? (

@@ -7,6 +7,32 @@ export function canEditEvent(user: AllowedUser, event: Event): boolean {
   return ownsDraft || adminReviewingSubmitted;
 }
 
+// the details go out on Moxfield with the folder and the first deck, so they lock from then on
+// unless an admin unlocks them
+export function areDetailsLocked(event: Event, entries: Entry[]): boolean {
+  const hasPublishedContent =
+    event.moxfieldFolderId !== null || entries.some((entry) => entry.moxfieldDeckId !== null);
+  return hasPublishedContent && !event.metadataUnlocked;
+}
+
+export function canEditEventDetails(user: AllowedUser, event: Event, entries: Entry[]): boolean {
+  return canEditEvent(user, event) && !areDetailsLocked(event, entries);
+}
+
+export function canUnlockMetadata(user: AllowedUser, event: Event, entries: Entry[]): boolean {
+  return user.isAdmin && event.status === "submitted" && areDetailsLocked(event, entries);
+}
+
+// a published event goes back to review so the rest of the lists can be added
+export function canReopenEvent(user: AllowedUser, event: Event): boolean {
+  return user.isAdmin && event.status === "published";
+}
+
+// hands a submitted event back to its creator
+export function canReturnToDraft(user: AllowedUser, event: Event): boolean {
+  return user.isAdmin && event.status === "submitted";
+}
+
 export function canDeleteEvent(user: AllowedUser, event: Event): boolean {
   const ownsDraft = event.status === "draft" && event.createdBy === user.email;
   const adminDeletingNonDraft = user.isAdmin && event.status !== "draft";

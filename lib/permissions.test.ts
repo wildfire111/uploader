@@ -1,11 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
+  areDetailsLocked,
   canDeleteEvent,
   canEditEntry,
   canEditEvent,
+  canEditEventDetails,
   canPublishEvent,
   canRemoveOrDemoteUser,
+  canReopenEvent,
+  canReturnToDraft,
   canSubmitEvent,
+  canUnlockMetadata,
 } from "./permissions";
 import type { AllowedUser, Entry, Event } from "./types";
 
@@ -24,6 +29,7 @@ function makeEvent(overrides: Partial<Event> = {}): Event {
     createdBy: creator.email,
     createdAt: "2026-09-01T00:00:00Z",
     moxfieldFolderId: null,
+    metadataUnlocked: false,
     ...overrides,
   };
 }
@@ -164,6 +170,119 @@ describe("canPublishEvent", () => {
   it("cannot publish an already-published event, even for an admin", () => {
     const event = makeEvent({ status: "published" });
     expect(canPublishEvent(admin, event, [makeEntry()])).toBe(false);
+  });
+});
+
+describe("areDetailsLocked", () => {
+  it("is open while nothing has gone to Moxfield", () => {
+    expect(areDetailsLocked(makeEvent({ status: "submitted" }), [makeEntry()])).toBe(false);
+  });
+
+  it("locks once an entry has a Moxfield deck", () => {
+    const entries = [makeEntry({ moxfieldDeckId: "stub-123" })];
+    expect(areDetailsLocked(makeEvent({ status: "submitted" }), entries)).toBe(true);
+  });
+
+  it("locks once the Moxfield folder exists, even if no deck made it", () => {
+    const event = makeEvent({ status: "submitted", moxfieldFolderId: "folder-1" });
+    expect(areDetailsLocked(event, [makeEntry()])).toBe(true);
+  });
+
+  it("is open again after an admin unlocks it", () => {
+    const event = makeEvent({
+      status: "submitted",
+      moxfieldFolderId: "folder-1",
+      metadataUnlocked: true,
+    });
+    expect(areDetailsLocked(event, [makeEntry({ moxfieldDeckId: "stub-123" })])).toBe(false);
+  });
+});
+
+describe("canEditEventDetails", () => {
+  const published = [makeEntry({ moxfieldDeckId: "stub-123" })];
+
+  it("follows the event's edit rule while the details are open", () => {
+    expect(canEditEventDetails(admin, makeEvent({ status: "submitted" }), [makeEntry()])).toBe(true);
+    expect(canEditEventDetails(creator, makeEvent({ status: "draft" }), [makeEntry()])).toBe(true);
+  });
+
+  it("does not let an admin edit locked details", () => {
+    const event = makeEvent({ status: "submitted", moxfieldFolderId: "folder-1" });
+    expect(canEditEventDetails(admin, event, published)).toBe(false);
+  });
+
+  it("does not let the creator edit locked details after the event is handed back", () => {
+    const event = makeEvent({ status: "draft", moxfieldFolderId: "folder-1" });
+    expect(canEditEventDetails(creator, event, published)).toBe(false);
+  });
+
+  it("lets an admin edit unlocked details", () => {
+    const event = makeEvent({
+      status: "submitted",
+      moxfieldFolderId: "folder-1",
+      metadataUnlocked: true,
+    });
+    expect(canEditEventDetails(admin, event, published)).toBe(true);
+  });
+
+  it("does not let anyone edit a published event's details, even unlocked", () => {
+    const event = makeEvent({ status: "published", metadataUnlocked: true });
+    expect(canEditEventDetails(admin, event, published)).toBe(false);
+  });
+});
+
+describe("canUnlockMetadata", () => {
+  const published = [makeEntry({ moxfieldDeckId: "stub-123" })];
+  const lockedEvent = makeEvent({ status: "submitted", moxfieldFolderId: "folder-1" });
+
+  it("lets an admin unlock locked details on a submitted event", () => {
+    expect(canUnlockMetadata(admin, lockedEvent, published)).toBe(true);
+  });
+
+  it("does not let a non-admin unlock", () => {
+    expect(canUnlockMetadata(creator, lockedEvent, published)).toBe(false);
+  });
+
+  it("has nothing to unlock when the details are already open", () => {
+    expect(canUnlockMetadata(admin, makeEvent({ status: "submitted" }), [makeEntry()])).toBe(false);
+    expect(canUnlockMetadata(admin, { ...lockedEvent, metadataUnlocked: true }, published)).toBe(
+      false
+    );
+  });
+
+  it("only unlocks a submitted event", () => {
+    expect(canUnlockMetadata(admin, { ...lockedEvent, status: "published" }, published)).toBe(false);
+    expect(canUnlockMetadata(admin, { ...lockedEvent, status: "draft" }, published)).toBe(false);
+  });
+});
+
+describe("canReopenEvent", () => {
+  it("lets an admin reopen a published event", () => {
+    expect(canReopenEvent(admin, makeEvent({ status: "published" }))).toBe(true);
+  });
+
+  it("does not let a non-admin reopen, including the creator", () => {
+    expect(canReopenEvent(creator, makeEvent({ status: "published" }))).toBe(false);
+  });
+
+  it("only reopens a published event", () => {
+    expect(canReopenEvent(admin, makeEvent({ status: "submitted" }))).toBe(false);
+    expect(canReopenEvent(admin, makeEvent({ status: "draft" }))).toBe(false);
+  });
+});
+
+describe("canReturnToDraft", () => {
+  it("lets an admin return a submitted event to draft", () => {
+    expect(canReturnToDraft(admin, makeEvent({ status: "submitted" }))).toBe(true);
+  });
+
+  it("does not let a non-admin return it", () => {
+    expect(canReturnToDraft(creator, makeEvent({ status: "submitted" }))).toBe(false);
+  });
+
+  it("only returns a submitted event", () => {
+    expect(canReturnToDraft(admin, makeEvent({ status: "published" }))).toBe(false);
+    expect(canReturnToDraft(admin, makeEvent({ status: "draft" }))).toBe(false);
   });
 });
 

@@ -12,6 +12,7 @@ type EventRow = {
   created_by: string;
   created_at: Date;
   moxfield_folder_id: string | null;
+  metadata_unlocked: boolean;
 };
 
 function mapEventRow(row: EventRow): Event {
@@ -25,12 +26,13 @@ function mapEventRow(row: EventRow): Event {
     createdBy: row.created_by,
     createdAt: row.created_at.toISOString(),
     moxfieldFolderId: row.moxfield_folder_id,
+    metadataUnlocked: row.metadata_unlocked,
   };
 }
 
 export async function getEventsForUser(user: AllowedUser): Promise<EventListItem[]> {
-  const result = await pool.query<EventRow & { entry_count: string }>(
-    `select e.*, count(en.id) as entry_count
+  const result = await pool.query<EventRow & { entry_count: string; published_count: string }>(
+    `select e.*, count(en.id) as entry_count, count(en.moxfield_deck_id) as published_count
      from events e
      left join entries en on en.event_id = e.id
      where e.created_by = $1
@@ -43,6 +45,7 @@ export async function getEventsForUser(user: AllowedUser): Promise<EventListItem
   return result.rows.map((row) => ({
     ...mapEventRow(row),
     entryCount: Number(row.entry_count),
+    publishedCount: Number(row.published_count),
   }));
 }
 
@@ -77,6 +80,23 @@ export async function setEventStatus(id: string, status: EventStatus): Promise<E
   const result = await pool.query<EventRow>(
     `update events set status = $2 where id = $1 returning *`,
     [id, status]
+  );
+  return mapEventRow(result.rows[0]);
+}
+
+// publishing locks the details again, and so does handing the event back to its creator
+export async function setEventStatusAndRelock(id: string, status: EventStatus): Promise<Event> {
+  const result = await pool.query<EventRow>(
+    `update events set status = $2, metadata_unlocked = false where id = $1 returning *`,
+    [id, status]
+  );
+  return mapEventRow(result.rows[0]);
+}
+
+export async function setMetadataUnlocked(id: string, unlocked: boolean): Promise<Event> {
+  const result = await pool.query<EventRow>(
+    `update events set metadata_unlocked = $2 where id = $1 returning *`,
+    [id, unlocked]
   );
   return mapEventRow(result.rows[0]);
 }
