@@ -80,15 +80,16 @@ const deckSizeRule: Rule = (analysis) => {
 
 const MAX_NAMED_DUPLICATES = 5;
 
-// copies are counted across the maindeck and sideboard together
-export const singletonRule: Rule = (analysis) => {
+// The cards that are in the deck more than once, keyed by front face ("Fire // Ice", "Fire/Ice" and
+// "Fire" are one card). Copies are counted across the maindeck and sideboard together, and basic
+// lands can be repeated.
+export function repeatedCards(cards: { name: string; quantity: number }[]): Map<string, { name: string; quantity: number }> {
   const copies = new Map<string, { name: string; quantity: number }>();
-  for (const card of analysis.cards) {
-    // "Fire // Ice", "Fire/Ice" and "Fire" are one card, so copies are counted by front face
-    const key = frontFace(card.name);
+  for (const card of cards) {
     if (isBasicLand(card.name)) {
       continue;
     }
+    const key = frontFace(card.name);
     const seen = copies.get(key);
     if (seen) {
       seen.quantity += card.quantity;
@@ -96,7 +97,11 @@ export const singletonRule: Rule = (analysis) => {
       copies.set(key, { name: card.name, quantity: card.quantity });
     }
   }
-  const duplicates = [...copies.values()].filter((card) => card.quantity > 1);
+  return new Map([...copies].filter(([, card]) => card.quantity > 1));
+}
+
+export const singletonRule: Rule = (analysis) => {
+  const duplicates = [...repeatedCards(analysis.cards).values()];
   const shown = duplicates.slice(0, MAX_NAMED_DUPLICATES);
   const warnings: DecklistWarning[] = shown.map((card) => ({
     code: "singleton",

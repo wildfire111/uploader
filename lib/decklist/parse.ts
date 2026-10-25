@@ -1,5 +1,5 @@
 import { isBasicLand, normaliseCardName } from "./normalise";
-import type { ParsedLine } from "./types";
+import type { Board, ParsedLine } from "./types";
 
 const SIDEBOARD_LINE = /sideboard/i;
 const SIDEBOARD_ABBREVIATION = /^(\/\/\s*)?sb\s*:?$/i;
@@ -24,10 +24,36 @@ export type ScannedLine = ParsedLine & {
   suffix?: true;
 };
 
+// What the parser made of one line of the text. A divider is the sideboard header, or the blank
+// line, that starts the sideboard; ignored lines (other headers, section labels, the Companion
+// marker) are skipped. board is the board the line sits in, which for a card is the card's own.
+export type LineRole = "card" | "divider" | "blank" | "ignored";
+export type ClassifiedLine = {
+  role: LineRole;
+  board: Board;
+  // the line the companion is declared on, or the marker above it
+  companion?: true;
+  // the card, when it was kept
+  card?: ScannedLine;
+};
+
 // isCardName settles a line that mentions "companion": a card with that in its name is a card,
 // anything else is the marker saying that the next line is the companion
 export function scanDecklist(raw: string, isCardName?: (name: string) => boolean): ScannedLine[] {
+  return scan(raw, isCardName).lines;
+}
+
+// one entry per line of the text, for showing the user how it was read
+export function classifyLines(raw: string, isCardName?: (name: string) => boolean): ClassifiedLine[] {
+  return scan(raw, isCardName).classified;
+}
+
+function scan(
+  raw: string,
+  isCardName?: (name: string) => boolean
+): { lines: ScannedLine[]; classified: ClassifiedLine[] } {
   const lines: ScannedLine[] = [];
+  const classified: ClassifiedLine[] = [];
   const rawLines = raw.split(/\r?\n/);
   // without a sideboard line, the first blank line after the maindeck starts the sideboard
   const splitOnBlank = !rawLines.some((line) => isSideboardLine(line.trim()));
@@ -40,18 +66,23 @@ export function scanDecklist(raw: string, isCardName?: (name: string) => boolean
     const line = rawLine.trim();
     if (line === "") {
       // a marker with nothing after it is just noise from the user's deck software
-      if (splitOnBlank && mainSeen && !companionNext) {
+      const splits = splitOnBlank && mainSeen && !companionNext;
+      const starts = splits && !inSideboard;
+      if (splits) {
         inSideboard = true;
       }
+      classified.push({ role: starts ? "divider" : "blank", board: inSideboard ? "side" : "main" });
       companionNext = false;
       continue;
     }
     if (isSideboardLine(line)) {
       inSideboard = true;
+      classified.push({ role: "divider", board: "side" });
       companionNext = false;
       continue;
     }
     if (OTHER_HEADER.test(line)) {
+      classified.push({ role: "ignored", board: inSideboard ? "side" : "main" });
       companionNext = false;
       continue;
     }
@@ -68,6 +99,7 @@ export function scanDecklist(raw: string, isCardName?: (name: string) => boolean
     const rest = match ? match[2] : body;
     const name = rest.replace(SET_CODE, "").trim();
     if (name === "") {
+      classified.push({ role: "ignored", board: inSideboard ? "side" : "main" });
       continue;
     }
     const printing = (SET_CODE.exec(rest)?.[0] ?? "") + foil;
@@ -75,22 +107,42 @@ export function scanDecklist(raw: string, isCardName?: (name: string) => boolean
     const isMarker = !hasSuffix && COMPANION_LINE.test(name) && !isCardName?.(name);
 
     if (hasSuffix) {
-      lines.push({ name, quantity, board: "side", companion: true, quantityText, printing, lineIndex, suffix: true });
+      const card: ScannedLine = { name, quantity, board: "side", companion: true, quantityText, printing, lineIndex, suffix: true };
+      lines.push(card);
+      classified.push({ role: "card", board: "side", companion: true, card });
       companionNext = false;
     } else if (isMarker) {
       companionNext = true;
       markerIndex = lineIndex;
+      classified.push({ role: "ignored", board: "side", companion: true });
     } else if (companionNext) {
-      lines.push({ name, quantity, board: "side", companion: true, quantityText, printing, lineIndex, markerIndex });
+      const card: ScannedLine = { name, quantity, board: "side", companion: true, quantityText, printing, lineIndex, markerIndex };
+      lines.push(card);
+      classified.push({ role: "card", board: "side", companion: true, card });
       companionNext = false;
     } else {
       const board = prefixed || inSideboard ? "side" : "main";
       mainSeen ||= board === "main";
-      lines.push({ name, quantity, board, quantityText, printing, lineIndex });
+      const card: ScannedLine = { name, quantity, board, quantityText, printing, lineIndex };
+      lines.push(card);
+      classified.push({ role: "card", board, card });
     }
   }
 
-  return withoutListedCompanions(withoutSectionLabels(lines));
+  const labelled = withoutSectionLabels(lines);
+  const kept = withoutListedCompanions(labelled);
+  const keptSet = new Set(kept);
+  const labelledSet = new Set(labelled);
+  for (const line of classified) {
+    if (line.card && !keptSet.has(line.card)) {
+      // a label is skipped; a second copy of the companion is still a card, it just isn't counted
+      if (!labelledSet.has(line.card)) {
+        line.role = "ignored";
+      }
+      line.card = undefined;
+    }
+  }
+  return { lines: kept, classified };
 }
 
 // Lists that write "Instants:" or "Creatures" above their cards give those lines no quantity, so

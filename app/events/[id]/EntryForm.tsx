@@ -5,6 +5,7 @@ import { formatPlacing } from "@/lib/placing";
 import type { CheckLists } from "@/lib/decklist/types";
 import { MAX_DECK_NAME_LENGTH, MAX_DECKLIST_LENGTH, MAX_PLAYER_NAME_LENGTH } from "@/lib/validation";
 import { DecklistChecks } from "./DecklistChecks";
+import { DecklistEditor, DecklistView } from "./DecklistView";
 import type { EntryFieldValues } from "./types";
 
 type Mode = "new" | "existing" | "readonly";
@@ -91,7 +92,9 @@ export function EntryForm({
         </div>
         <div className="readonly-field">
           <dt>Decklist</dt>
-          <dd className="decklist-readonly">{fields.decklistRaw}</dd>
+          <dd className="decklist-readonly">
+            <DecklistView raw={fields.decklistRaw} lists={lists} />
+          </dd>
         </div>
         <div className="readonly-field lg:col-start-1">
           <DecklistChecks decklistRaw={fields.decklistRaw} lists={lists} />
@@ -167,10 +170,12 @@ export function EntryForm({
 
         <label className="entry-form-decklist">
           Decklist
-          <textarea
+          <DecklistEditor
             rows={12}
             maxLength={MAX_DECKLIST_LENGTH}
             value={fields.decklistRaw}
+            lists={lists}
+            typing={decklistFocused}
             onChange={(event) => updateField("decklistRaw", event.target.value)}
             onFocus={() => setDecklistFocused(true)}
             onBlur={() => setDecklistFocused(false)}

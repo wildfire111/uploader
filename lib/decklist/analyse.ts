@@ -1,12 +1,52 @@
 import { pointsFor, resolveAlias } from "./lists";
-import { normaliseCardName } from "./normalise";
-import { parseDecklist } from "./parse";
+import { frontFace, normaliseCardName } from "./normalise";
+import { classifyLines, parseDecklist, type ClassifiedLine } from "./parse";
+import { repeatedCards } from "./rules";
 import type { Board, CardNameSet, CheckLists, DecklistAnalysis, ParsedLine } from "./types";
 
 // Settles whether a line that mentions "companion" is a card (e.g. "Faithful Companion") or the
 // marker above the companion. Without the card-name list every such line is taken as the marker.
 export function cardNameCheck({ cardNames, aliases }: CheckLists): ((name: string) => boolean) | undefined {
   return cardNames ? (name) => cardNames.has(normaliseCardName(resolveAlias(aliases, name))) : undefined;
+}
+
+// A line of the text with what the checks make of it. unknown and repeated are only set on lines
+// that end in a newline, so the line being typed is never flagged half-written; pass
+// lastLineFinished once nobody is typing, so the final line counts too.
+export type MarkedLine = ClassifiedLine & {
+  unknown?: true;
+  repeated?: true;
+  // the points for one copy, when there is a points list and it is more than 0
+  points?: number;
+};
+
+export function markDecklistLines(raw: string, lists: CheckLists, lastLineFinished = false): MarkedLine[] {
+  const { points, cardNames, aliases, companions } = lists;
+  const lines: MarkedLine[] = classifyLines(raw, cardNameCheck(lists)).map((line) => ({ ...line }));
+  const named = lines.flatMap((line, index) =>
+    line.card ? [{ line, index, card: line.card, name: resolveAlias(aliases, line.card.name) }] : []
+  );
+  const repeated = repeatedCards(
+    named.map(({ card, name }) => ({ name, quantity: card.companion ? 1 : card.quantity }))
+  );
+  for (const { line, index, card, name } of named) {
+    const finished = lastLineFinished || index < lines.length - 1;
+    const undeclaredCompanion = !card.companion && companions?.has(normaliseCardName(name)) === true;
+    const value = points && !undeclaredCompanion ? pointsFor(points, name) : 0;
+    if (value > 0) {
+      line.points = value;
+    }
+    if (!finished) {
+      continue;
+    }
+    if (cardNames && !cardNames.has(normaliseCardName(name))) {
+      line.unknown = true;
+    }
+    if (repeated.has(frontFace(name))) {
+      line.repeated = true;
+    }
+  }
+  return lines;
 }
 
 export function analyseDecklist(raw: string, lists: CheckLists): DecklistAnalysis {
