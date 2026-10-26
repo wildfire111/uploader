@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { assignPlacingAction, unplaceEntryAction } from "@/lib/actions/entries";
 import { formatPlacing } from "@/lib/placing";
 import type { Entry } from "@/lib/types";
@@ -49,8 +49,15 @@ export function QuickAssign({
     setPlacingFrom("");
     setPlacingTo("");
     setError(null);
-    nameRef.current?.focus();
   }
+
+  // The name box is disabled while a player is picked, and a disabled box can't take focus, so it
+  // gets focus once it's enabled again, ready for the next player.
+  useEffect(() => {
+    if (chosen === null) {
+      nameRef.current?.focus();
+    }
+  }, [chosen]);
 
   function choose(entry: Entry) {
     setChosen(entry);
