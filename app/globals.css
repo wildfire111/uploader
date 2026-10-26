@@ -113,6 +113,11 @@
     font: inherit;
   }
 
+  button:focus-visible,
+  summary:focus-visible {
+    @apply outline-2 outline-offset-2 outline-brand-hover;
+  }
+
   button[data-variant="primary"] {
     @apply border-brand bg-brand text-white hover:border-brand-hover hover:bg-brand-hover;
   }
@@ -223,7 +228,24 @@
   }
 
   .entry-row {
-    @apply grid cursor-pointer grid-cols-[108px_minmax(0,1fr)] gap-x-2 gap-y-1 border-b border-raised px-3 py-2 hover:bg-raised;
+    @apply grid w-full cursor-pointer grid-cols-[112px_minmax(0,1fr)] items-baseline gap-x-2 gap-y-1 rounded-none border-0 border-b border-raised bg-transparent px-3 py-2 text-left hover:bg-raised;
+  }
+
+  .entry-row:focus-visible {
+    @apply -outline-offset-2;
+  }
+
+  /* placing leads each row: larger, heavier, with figures of equal width so the column lines up */
+  .entry-placing {
+    @apply inline-flex items-center gap-1 text-lg leading-tight font-semibold tabular-nums;
+  }
+
+  .entry-warning {
+    @apply flex items-center gap-1;
+  }
+
+  .icon {
+    @apply inline-block shrink-0;
   }
 
   .entry-row:last-child {
@@ -234,7 +256,7 @@
     @apply bg-brand/20;
   }
 
-  .entry-row[data-published="true"] {
+  .entry-row[data-published="true"] .entry-placing {
     @apply text-ok;
   }
 
@@ -355,5 +377,109 @@
 
   .decklist-readonly {
     @apply rounded-md border border-line bg-panel p-2 font-mono whitespace-pre-wrap;
+  }
+}
+
+@layer components {
+  .event-meta {
+    @apply my-0 flex flex-wrap items-center gap-x-2 gap-y-1 text-muted;
+  }
+
+  .page-header h1 {
+    @apply mb-1;
+  }
+
+  .status-badge {
+    @apply rounded-full border border-line px-2.5 py-0.5 text-sm text-ink;
+  }
+
+  .status-badge[data-status="submitted"] {
+    @apply border-brand/60 bg-brand/15 text-link;
+  }
+
+  .status-badge[data-status="published"] {
+    @apply border-ok/50 bg-ok/10 text-ok;
+  }
+
+  /* a button that reads as a link, for small actions next to text */
+  button.link-button {
+    @apply border-0 bg-transparent p-0 text-link underline underline-offset-4 hover:bg-transparent hover:text-link-hover;
+  }
+
+  .warning-jump {
+    @apply border-0 bg-transparent p-0 text-left text-warn hover:bg-transparent;
+  }
+
+  .warning-jump:not(:disabled):hover .warning-jump-hint,
+  .warning-jump:focus-visible .warning-jump-hint {
+    @apply opacity-100;
+  }
+
+  .warning-jump-hint {
+    @apply opacity-60;
+  }
+
+  .warning:has(.warning-jump) {
+    @apply my-0 mb-2;
+  }
+
+  .action-menu {
+    @apply relative;
+  }
+
+  .action-menu-button {
+    @apply inline-flex items-center gap-1.5;
+  }
+
+  .action-menu-list {
+    @apply absolute right-0 z-10 mt-1 flex min-w-44 flex-col rounded-md border border-line bg-panel p-1;
+    box-shadow: 0 8px 24px rgb(0 0 0 / 0.45);
+  }
+
+  .action-menu-list button {
+    @apply border-0 bg-transparent text-left hover:bg-raised;
+  }
+
+  .action-menu-list button[data-danger="true"] {
+    @apply text-danger hover:bg-danger/15;
+  }
+
+  .publish-status {
+    @apply mb-3 rounded-md border border-brand/40 bg-brand/10 px-3 py-2;
+  }
+
+  .publish-status-line {
+    @apply my-0 mb-2 flex items-baseline justify-between gap-3 tabular-nums;
+  }
+
+  .publish-status progress {
+    @apply block h-2 w-full overflow-hidden rounded-full border-0 bg-raised;
+    appearance: none;
+  }
+
+  .publish-status progress::-webkit-progress-bar {
+    @apply bg-raised;
+  }
+
+  .publish-status progress::-webkit-progress-value {
+    @apply bg-brand;
+    transition: width 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .publish-status progress::-moz-progress-bar {
+    @apply bg-brand;
+  }
+
+  .confirm-dialog {
+    @apply m-auto w-[min(32rem,calc(100vw-2rem))] rounded-lg border border-line bg-panel p-5 text-ink;
+    box-shadow: 0 16px 48px rgb(0 0 0 / 0.6);
+  }
+
+  .confirm-dialog::backdrop {
+    background: rgb(0 0 0 / 0.6);
+  }
+
+  .confirm-dialog > :last-child {
+    @apply mt-4;
   }
 }

@@ -8,6 +8,7 @@ import {
   MAX_EVENT_YEAR,
   MIN_EVENT_YEAR,
 } from "@/lib/validation";
+import { ActionMenu, type ActionMenuItem } from "./ActionMenu";
 import type { EventDetailsEditor } from "./useEventDetails";
 
 // the event's title (or its edit form) and the buttons for what can be done with the event
@@ -61,6 +62,21 @@ export function EventHeader({
   onUnlock: () => void;
 }) {
   const { fields, setFields } = details;
+  const menuItems: ActionMenuItem[] = [];
+  if (canUnlock) {
+    menuItems.push({ label: "Unlock details", onSelect: onUnlock, disabled: isPending || editInProgress });
+  }
+  if (canReturnToDraft) {
+    menuItems.push({
+      label: "Return to draft",
+      onSelect: onReturnToDraft,
+      disabled: isPending || editInProgress,
+    });
+  }
+  if (canDelete) {
+    menuItems.push({ label: "Delete event", onSelect: onDelete, disabled: isPending, danger: true });
+  }
+
   return (
     <div className="page-header">
       <div>
@@ -119,13 +135,27 @@ export function EventHeader({
           </div>
         ) : (
           <>
-            <h1>
-              {event.name} &middot; {formatDisplayDate(event.date)} &middot; {event.attendance}{" "}
-              players &middot;{" "}
-              {getStatusLabelWithProgress(event.status, publishedCount, entryCount)}
-            </h1>
+            <h1>{event.name}</h1>
+            <p className="event-meta">
+              <span>{formatDisplayDate(event.date)}</span>
+              <span aria-hidden="true">&middot;</span>
+              <span className="tabular-nums">{event.attendance} players</span>
+              <span className="status-badge" data-status={event.status}>
+                {getStatusLabelWithProgress(event.status, publishedCount, entryCount)}
+              </span>
+              {canEdit ? (
+                <button
+                  type="button"
+                  className="link-button"
+                  onClick={details.start}
+                  disabled={editInProgress}
+                >
+                  Edit details
+                </button>
+              ) : null}
+            </p>
             {detailsLocked ? (
-              <p>
+              <p className="text-muted">
                 The details are locked because some lists are already on Moxfield with them.
               </p>
             ) : null}
@@ -135,31 +165,12 @@ export function EventHeader({
 
       {!details.editing ? (
         <div className="button-row">
-          {canEdit ? (
-            <button type="button" onClick={details.start} disabled={editInProgress}>
-              Edit details
-            </button>
-          ) : null}
-          {canUnlock ? (
-            <button type="button" onClick={onUnlock} disabled={isPending || editInProgress}>
-              Unlock details
-            </button>
-          ) : null}
           {canReopen ? (
             <button type="button" onClick={onReopen} disabled={isPending}>
-              Reopen
+              Reopen to add lists
             </button>
           ) : null}
-          {canReturnToDraft ? (
-            <button type="button" onClick={onReturnToDraft} disabled={isPending || editInProgress}>
-              Return to draft
-            </button>
-          ) : null}
-          {canDelete ? (
-            <button type="button" data-variant="danger" onClick={onDelete} disabled={isPending}>
-              Delete
-            </button>
-          ) : null}
+          <ActionMenu label="More" items={menuItems} />
           {canSubmit ? (
             <button type="button" data-variant="primary" onClick={onSubmit} disabled={isPending}>
               Submit for review
@@ -172,9 +183,7 @@ export function EventHeader({
               onClick={onPublish}
               disabled={isPublishing || retryInSeconds !== null}
             >
-              {retryInSeconds !== null
-                ? `Publish to Moxfield (retry in ${retryInSeconds}s)`
-                : "Publish to Moxfield"}
+              Publish to Moxfield
             </button>
           ) : null}
         </div>

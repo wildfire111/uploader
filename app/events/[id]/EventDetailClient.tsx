@@ -26,6 +26,9 @@ import type { AllowedUser, Entry, Event } from "@/lib/types";
 import { EntriesList } from "./EntriesList";
 import { EntryForm } from "./EntryForm";
 import { sortEntries } from "./entryFields";
+import { PublishDialog } from "./PublishDialog";
+import { PublishStatus } from "./PublishStatus";
+import { countEntriesByProblem } from "./warningLabels";
 import { EventHeader } from "./EventHeader";
 import { runAction } from "./runAction";
 import { useDecklistChecks } from "./useDecklistChecks";
@@ -61,6 +64,7 @@ export function EventDetailClient({
   const [entries, setEntries] = useState<Entry[]>(() => sortEntries(initialEntries));
   const [isPending, startTransition] = useTransition();
   const [actionError, setActionError] = useState<string | null>(null);
+  const [confirmingPublish, setConfirmingPublish] = useState(false);
 
   const pageIsEditable = canEditEvent(currentUser, event);
   const details = useEventDetails({ event, setEvent, startTransition });
@@ -150,6 +154,7 @@ export function EventDetailClient({
 
   const { selection, editInProgress } = editor;
   const publishedCount = entries.filter((e) => e.moxfieldDeckId !== null).length;
+  const unpublishedIds = entries.filter((e) => e.moxfieldDeckId === null).map((e) => e.id);
   const canPublish = canPublishEvent(currentUser, event, entries) && !editInProgress;
   const attendanceWarning = entries.length > event.attendance;
 
@@ -184,30 +189,36 @@ export function EventDetailClient({
         retryInSeconds={publishing.retryInSeconds}
         onDelete={deleteEvent}
         onSubmit={submitEvent}
-        onPublish={publishing.publish}
+        onPublish={() => setConfirmingPublish(true)}
         onReopen={reopenEvent}
         onReturnToDraft={returnToDraft}
         onUnlock={unlockDetails}
       />
 
-      {canPublish && publishAccount ? (
-        <p>
-          Publishing to the Moxfield account <strong>{publishAccount}</strong>.
+      <PublishStatus
+        progress={publishing.progress}
+        result={publishing.result}
+        failure={publishing.failure}
+        retryInSeconds={publishing.retryInSeconds}
+        onDismiss={publishing.dismissResult}
+      />
+      {actionError ? (
+        <p className="error" role="alert">
+          {actionError}
         </p>
       ) : null}
-      {publishing.progress ? (
-        <p>
-          Publishing {publishing.progress.done} of {publishing.progress.total}&hellip;
-        </p>
-      ) : null}
-      {publishing.error ? <p className="error">{publishing.error}</p> : null}
-      {actionError ? <p className="error">{actionError}</p> : null}
       {attendanceWarning ? (
-        <p className="warning">
+        <p className="warning" role="status">
           {entries.length} entries but attendance is {event.attendance}
         </p>
       ) : null}
-      <WarningSummary warningsByEntryId={warningsByEntryId} />
+      <WarningSummary
+        entries={entries}
+        warningsByEntryId={warningsByEntryId}
+        selectedEntryId={selection.type === "existing" ? selection.entryId : null}
+        locked={editInProgress}
+        onSelect={editor.selectEntry}
+      />
 
       <div className="event-layout">
         <div className="entries-column">
@@ -270,6 +281,18 @@ export function EventDetailClient({
           {selection.type === "none" ? <p>No entries yet.</p> : null}
         </div>
       </div>
+      <PublishDialog
+        open={confirmingPublish}
+        account={publishAccount}
+        toPublish={unpublishedIds.length}
+        alreadyPublished={publishedCount}
+        problems={countEntriesByProblem(unpublishedIds, warningsByEntryId)}
+        onCancel={() => setConfirmingPublish(false)}
+        onConfirm={() => {
+          setConfirmingPublish(false);
+          publishing.publish();
+        }}
+      />
     </main>
   );
 }

@@ -2,19 +2,9 @@
 
 import { formatPlacing } from "@/lib/placing";
 import type { DecklistWarning } from "@/lib/decklist/types";
+import { CheckIcon, WarnIcon } from "./icons";
+import { warningLabel } from "./warningLabels";
 import type { Entry } from "@/lib/types";
-
-const WARNING_LABELS: Record<DecklistWarning["code"], string> = {
-  points: "points",
-  "deck-size": "deck size",
-  "unknown-card": "card name",
-  singleton: "duplicates",
-  companion: "companion",
-};
-
-function warningLabel(warnings: DecklistWarning[]): string {
-  return [...new Set(warnings.map((warning) => WARNING_LABELS[warning.code]))].join(", ");
-}
 
 export function EntriesList({
   entries,
@@ -38,47 +28,48 @@ export function EntriesList({
       {entries.map((entry) => {
         const isSelected = entry.id === selectedEntryId;
         const isClickable = !locked || isSelected;
+        const warnings = warningsByEntryId.get(entry.id) ?? [];
+        const isPublished = entry.moxfieldDeckId !== null;
         return (
-          <div
+          <button
             key={entry.id}
+            type="button"
             className="entry-row"
             data-selected={isSelected}
-            data-published={entry.moxfieldDeckId !== null}
-            role="button"
-            tabIndex={isClickable ? 0 : -1}
-            aria-disabled={!isClickable}
-            style={isClickable ? undefined : { cursor: "default", opacity: 0.6 }}
-            onClick={() => {
-              if (isClickable) {
-                onSelect(entry.id);
-              }
-            }}
+            data-published={isPublished}
+            aria-current={isSelected ? "true" : undefined}
+            disabled={!isClickable}
+            onClick={() => onSelect(entry.id)}
           >
-            <span>
+            <span className="entry-placing">
               {formatPlacing(entry, attendance)}
-              {entry.moxfieldDeckId !== null ? " ✓" : ""}
+              {isPublished ? (
+                <>
+                  <CheckIcon />
+                  <span className="sr-only">Published</span>
+                </>
+              ) : null}
             </span>
             <span className="min-w-0">
-              <span className="block truncate">{entry.playerName}</span>
+              <span className="block truncate font-medium">{entry.playerName}</span>
               <span className="block truncate text-sm text-muted">{entry.deckName}</span>
-              {warningsByEntryId.get(entry.id)?.length ? (
+              {warnings.length ? (
                 <span
-                  className="block truncate text-sm text-warn"
-                  title={warningsByEntryId
-                    .get(entry.id)
-                    ?.map((warning) => warning.message)
-                    .join("\n")}
+                  className="entry-warning block truncate text-sm text-warn"
+                  title={warnings.map((warning) => warning.message).join("\n")}
                 >
-                  &#9888; {warningLabel(warningsByEntryId.get(entry.id) ?? [])}
+                  <WarnIcon />
+                  <span className="sr-only">Warnings: </span>
+                  {warningLabel(warnings)}
                 </span>
               ) : null}
             </span>
-          </div>
+          </button>
         );
       })}
       {isNewEntryOpen ? (
         <div className="entry-row" data-selected="true" data-placeholder="true">
-          <span>&#x25B8;</span>
+          <span className="entry-placing" aria-hidden="true">&hellip;</span>
           <span>(new entry)</span>
         </div>
       ) : null}
