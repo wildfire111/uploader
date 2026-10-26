@@ -29,6 +29,7 @@ export function EntriesList({
   selectedId,
   isNewEntryOpen = false,
   locked = false,
+  compact = false,
   onSelect,
   warningsByEntryId,
   emptyText = "No entries yet.",
@@ -37,12 +38,14 @@ export function EntriesList({
   selectedId: string | null;
   isNewEntryOpen?: boolean;
   locked?: boolean;
+  // a narrow left column, for labels that are just a number
+  compact?: boolean;
   onSelect: (entryId: string) => void;
   warningsByEntryId: Map<string, DecklistWarning[]>;
   emptyText?: string;
 }) {
   return (
-    <div className="entries-pane">
+    <div className="entries-pane" data-compact={compact}>
       {rows.map((row) => {
         const isSelected = row.id === selectedId;
         const isClickable = !locked || isSelected;

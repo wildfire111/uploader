@@ -4,7 +4,6 @@ import { useState, type ChangeEvent } from "react";
 import { EntriesList } from "@/app/_decklist/EntriesList";
 import { ReadonlyEntry } from "@/app/_decklist/ReadonlyEntry";
 import { useDecklistChecks } from "@/app/_decklist/useDecklistChecks";
-import { WarningSummary } from "@/app/_decklist/WarningSummary";
 import type { AliasList, PointsList } from "@/lib/decklist/types";
 import { formatPlayerName } from "@/lib/pdfImport/entry";
 import { extractPdfPages } from "@/lib/pdfImport/extract";
@@ -109,11 +108,10 @@ export function CheckClient({
 
       {loaded ? (
         <>
-          <p>
-            {fileName}: {lists.length} {lists.length === 1 ? "list" : "lists"},{" "}
+          <p className="mt-0 mb-3 text-sm text-muted">
+            {fileName} &middot; {lists.length} {lists.length === 1 ? "list" : "lists"} &middot;{" "}
             {warningsByEntryId.size} with problems
           </p>
-          <WarningSummary warningsByEntryId={warningsByEntryId} />
           <div className="event-layout">
             <div className="entries-column">
               <EntriesList
@@ -124,6 +122,7 @@ export function CheckClient({
                   deckName: list.deckName,
                 }))}
                 selectedId={selectedId}
+                compact
                 onSelect={setSelectedId}
                 warningsByEntryId={warningsByEntryId}
               />

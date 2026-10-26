@@ -226,6 +226,10 @@
     @apply grid cursor-pointer grid-cols-[108px_minmax(0,1fr)] gap-x-2 gap-y-1 border-b border-raised px-3 py-2 hover:bg-raised;
   }
 
+  .entries-pane[data-compact="true"] .entry-row {
+    @apply grid-cols-[2rem_minmax(0,1fr)];
+  }
+
   .entry-row:last-child {
     @apply border-b-0;
   }
