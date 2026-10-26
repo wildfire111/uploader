@@ -22,19 +22,19 @@ import {
   canSubmitEvent,
   canUnlockMetadata,
 } from "@/lib/permissions";
-import { placingWarnings } from "@/lib/placing";
+import { formatPlacing, placingWarnings } from "@/lib/placing";
 import type { AllowedUser, Entry, Event } from "@/lib/types";
-import { EntriesList } from "./EntriesList";
+import { EntriesList } from "@/app/_decklist/EntriesList";
+import { useDecklistChecks } from "@/app/_decklist/useDecklistChecks";
+import { WarningSummary } from "@/app/_decklist/WarningSummary";
 import { EntryForm } from "./EntryForm";
 import { sortEntries } from "./entryFields";
 import { EventHeader } from "./EventHeader";
 import { QuickAssign } from "./QuickAssign";
 import { runAction } from "./runAction";
-import { useDecklistChecks } from "./useDecklistChecks";
 import { useEntryEditor } from "./useEntryEditor";
 import { useEventDetails } from "./useEventDetails";
 import { usePublish } from "./usePublish";
-import { WarningSummary } from "./WarningSummary";
 
 export function EventDetailClient({
   event: initialEvent,
@@ -258,9 +258,14 @@ export function EventDetailClient({
           ) : (
             <>
               <EntriesList
-                entries={entries}
-                attendance={event.attendance}
-                selectedEntryId={selection.type === "existing" ? selection.entryId : null}
+                rows={entries.map((entry) => ({
+                  id: entry.id,
+                  label: formatPlacing(entry, event.attendance),
+                  playerName: entry.playerName,
+                  deckName: entry.deckName,
+                  published: entry.moxfieldDeckId !== null,
+                }))}
+                selectedId={selection.type === "existing" ? selection.entryId : null}
                 isNewEntryOpen={selection.type === "new"}
                 locked={editInProgress}
                 onSelect={editor.selectEntry}
