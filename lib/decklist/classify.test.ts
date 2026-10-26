@@ -110,7 +110,7 @@ describe("markDecklistLines", () => {
     expect(markDecklistLines("1 Flash\n1 Flash", lists, true).map((line) => line.repeated)).toEqual([true, true]);
   });
 
-  it("flags Reserved List cards when the list is more than 7 points", () => {
+  it("flags Reserved List cards when the list is exactly 8 points", () => {
     const withReserved = { ...lists, reserved };
     expect(markDecklistLines("1 Black Lotus\n1 Flash\n", withReserved).map((line) => line.reserved)).toEqual([
       true,
@@ -118,6 +118,7 @@ describe("markDecklistLines", () => {
       undefined,
     ]);
     expect(markDecklistLines("1 Black Lotus\n2 Lightning Bolt\n", withReserved).some((line) => line.reserved)).toBe(false);
+    expect(markDecklistLines("1 Black Lotus\n1 Flash\n1 Lightning Bolt\n", withReserved).some((line) => line.reserved)).toBe(false);
   });
 
   it("does not flag Reserved List cards without the list or points", () => {
@@ -127,7 +128,7 @@ describe("markDecklistLines", () => {
 
   it("counts the points of the line being typed only once it is finished", () => {
     const withReserved = { ...lists, reserved };
-    expect(markDecklistLines("1 Black Lotus\n2 Lightning Bolt\n1 Flash", withReserved).some((line) => line.reserved)).toBe(false);
-    expect(markDecklistLines("1 Black Lotus\n2 Lightning Bolt\n1 Flash", withReserved, true)[0].reserved).toBe(true);
+    expect(markDecklistLines("1 Black Lotus\n1 Flash", withReserved).some((line) => line.reserved)).toBe(false);
+    expect(markDecklistLines("1 Black Lotus\n1 Flash", withReserved, true)[0].reserved).toBe(true);
   });
 });
