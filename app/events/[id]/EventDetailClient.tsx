@@ -22,20 +22,22 @@ import {
   canSubmitEvent,
   canUnlockMetadata,
 } from "@/lib/permissions";
+import { formatPlacing, placingWarnings } from "@/lib/placing";
 import type { AllowedUser, Entry, Event } from "@/lib/types";
-import { EntriesList } from "./EntriesList";
+import { EntriesList } from "@/app/_decklist/EntriesList";
+import { useDecklistChecks } from "@/app/_decklist/useDecklistChecks";
+import { WarningSummary } from "@/app/_decklist/WarningSummary";
 import { EntryForm } from "./EntryForm";
 import { sortEntries } from "./entryFields";
 import { PublishDialog } from "./PublishDialog";
 import { PublishStatus } from "./PublishStatus";
-import { countEntriesByProblem } from "./warningLabels";
+import { countEntriesByProblem } from "@/app/_decklist/warningLabels";
 import { EventHeader } from "./EventHeader";
+import { QuickAssign } from "./QuickAssign";
 import { runAction } from "./runAction";
-import { useDecklistChecks } from "./useDecklistChecks";
 import { useEntryEditor } from "./useEntryEditor";
 import { useEventDetails } from "./useEventDetails";
 import { usePublish } from "./usePublish";
-import { WarningSummary } from "./WarningSummary";
 
 export function EventDetailClient({
   event: initialEvent,
@@ -65,6 +67,9 @@ export function EventDetailClient({
   const [isPending, startTransition] = useTransition();
   const [actionError, setActionError] = useState<string | null>(null);
   const [confirmingPublish, setConfirmingPublish] = useState(false);
+  // the placing panel stands in for the list of entries while it's open
+  const [placing, setPlacing] = useState(false);
+  const unplacedCount = entries.filter((e) => !e.placingAssigned).length;
 
   const pageIsEditable = canEditEvent(currentUser, event);
   const details = useEventDetails({ event, setEvent, startTransition });
@@ -106,7 +111,23 @@ export function EventDetailClient({
     });
   }
 
+  function placingChanged(changed: Entry) {
+    setEntries((current) => sortEntries(current.map((e) => (e.id === changed.id ? changed : e))));
+  }
+
   function submitEvent() {
+    // odd placings are worth a look, but they don't stop a submit
+    const { duplicates, skipped } = placingWarnings(entries);
+    const notes: string[] = [];
+    if (duplicates.length > 0) {
+      notes.push(`More than one list has the exact placing ${duplicates.join(", ")}.`);
+    }
+    if (skipped.length > 0) {
+      notes.push(`No list has the placing ${skipped.join(", ")}.`);
+    }
+    if (notes.length > 0 && !window.confirm(`${notes.join("\n")}\n\nSubmit it anyway?`)) {
+      return;
+    }
     runAction(startTransition, setActionError, async () => {
       const result = await submitEventAction(event.id);
       if (!result.ok) {
@@ -219,22 +240,54 @@ export function EventDetailClient({
 
       <div className="event-layout">
         <div className="entries-column">
-          <EntriesList
-            entries={entries}
-            attendance={event.attendance}
-            selectedEntryId={selection.type === "existing" ? selection.entryId : null}
-            isNewEntryOpen={selection.type === "new"}
-            locked={editInProgress}
-            onSelect={editor.selectEntry}
-            warningsByEntryId={warningsByEntryId}
-          />
-          {pageIsEditable && selection.type !== "new" ? (
-            <div>
-              <button type="button" onClick={editor.openNewEntry} disabled={editInProgress}>
-                + Add entry
+          {pageIsEditable && unplacedCount > 0 && !placing ? (
+            <div className="mb-3 flex items-center justify-between gap-3 rounded-md border border-brand/40 bg-brand/10 px-3 py-2">
+              <span>
+                {unplacedCount} of {entries.length} lists still need a placing before this can be
+                submitted.
+              </span>
+              <button
+                type="button"
+                data-variant="primary"
+                onClick={() => setPlacing(true)}
+                disabled={editInProgress}
+              >
+                Place lists
               </button>
             </div>
           ) : null}
+          {placing ? (
+            <QuickAssign
+              entries={entries}
+              attendance={event.attendance}
+              onChanged={placingChanged}
+              onDone={() => setPlacing(false)}
+            />
+          ) : (
+            <>
+              <EntriesList
+                rows={entries.map((entry) => ({
+                  id: entry.id,
+                  label: formatPlacing(entry, event.attendance),
+                  playerName: entry.playerName,
+                  deckName: entry.deckName,
+                  published: entry.moxfieldDeckId !== null,
+                }))}
+                selectedId={selection.type === "existing" ? selection.entryId : null}
+                isNewEntryOpen={selection.type === "new"}
+                locked={editInProgress}
+                onSelect={editor.selectEntry}
+                warningsByEntryId={warningsByEntryId}
+              />
+              {pageIsEditable && selection.type !== "new" ? (
+                <div>
+                  <button type="button" onClick={editor.openNewEntry} disabled={editInProgress}>
+                    + Add entry
+                  </button>
+                </div>
+              ) : null}
+            </>
+          )}
         </div>
 
         <div className="entry-detail-pane" ref={detailPaneRef}>

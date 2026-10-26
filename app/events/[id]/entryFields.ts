@@ -6,12 +6,39 @@ import { blankEntryFields, type EntryFieldValues } from "./types";
 export type Selection = { type: "none" } | { type: "new" } | { type: "existing"; entryId: string };
 
 export function sortEntries(entries: Entry[]): Entry[] {
+  // unplaced lists go last, in import order (their placeholder placings), as the server sorts them
   return [...entries].sort(
-    (a, b) => a.placingFrom - b.placingFrom || a.createdAt.localeCompare(b.createdAt)
+    (a, b) =>
+      Number(b.placingAssigned) - Number(a.placingAssigned) ||
+      a.placingFrom - b.placingFrom ||
+      a.createdAt.localeCompare(b.createdAt)
   );
 }
 
+const MAX_MATCHES = 8;
+
+// quick assign: every word typed has to be somewhere in the player or deck name
+export function matchEntries(unplaced: Entry[], query: string, limit = MAX_MATCHES): Entry[] {
+  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+  return unplaced
+    .filter((entry) => {
+      const haystack = `${entry.playerName} ${entry.deckName}`.toLowerCase();
+      return words.every((word) => haystack.includes(word));
+    })
+    .slice(0, limit);
+}
+
 export function entryToFields(entry: Entry): EntryFieldValues {
+  // an unplaced list's placing is a placeholder, so the form starts blank
+  if (!entry.placingAssigned) {
+    return {
+      placingFrom: "",
+      placingTo: "",
+      playerName: entry.playerName,
+      deckName: entry.deckName,
+      decklistRaw: entry.decklistRaw,
+    };
+  }
   return {
     placingFrom: String(entry.placingFrom),
     placingTo: entry.placingTo === null ? "" : String(entry.placingTo),

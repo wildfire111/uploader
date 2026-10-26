@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { ChevronDownIcon } from "./icons";
+import { ChevronDownIcon } from "@/app/_decklist/icons";
 
 export type ActionMenuItem = {
   label: string;

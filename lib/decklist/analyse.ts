@@ -1,7 +1,7 @@
 import { pointsFor, resolveAlias } from "./lists";
 import { frontFace, normaliseCardName } from "./normalise";
 import { classifyLines, parseDecklist, type ClassifiedLine } from "./parse";
-import { RESERVED_MAX_POINTS, repeatedCards } from "./rules";
+import { DEFAULT_MAX_POINTS, repeatedCards } from "./rules";
 import type { Board, CardNameSet, CheckLists, DecklistAnalysis, ParsedLine } from "./types";
 
 // Settles whether a line that mentions "companion" is a card (e.g. "Faithful Companion") or the
@@ -50,8 +50,9 @@ export function markDecklistLines(raw: string, lists: CheckLists, lastLineFinish
       line.repeated = true;
     }
   }
-  // 8 points is only allowed with no Reserved List cards; with any, the total is 7
-  if (reserved && total > RESERVED_MAX_POINTS) {
+  // 8 points is only allowed with no Reserved List cards; with any, the total is 7. Only 8 is
+  // marked: more than that is unlikely to be a Reserved List mistake
+  if (reserved && total === DEFAULT_MAX_POINTS) {
     for (const { line, name } of named) {
       if (reserved.has(normaliseCardName(name))) {
         line.reserved = true;

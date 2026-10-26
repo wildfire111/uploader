@@ -4,7 +4,7 @@ import type { DecklistAnalysis, DecklistWarning } from "./types";
 const MAINDECK_SIZE = 60;
 const SIDEBOARD_SIZE = 15;
 const DEFAULT_MIN_POINTS = 7;
-const DEFAULT_MAX_POINTS = 8;
+export const DEFAULT_MAX_POINTS = 8;
 // what a list with any Reserved List card can total
 export const RESERVED_MAX_POINTS = DEFAULT_MIN_POINTS;
 

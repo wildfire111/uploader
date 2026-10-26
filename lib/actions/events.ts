@@ -15,6 +15,7 @@ import {
 import { getEntriesForEvent } from "@/lib/queries/entries";
 import {
   createEvent,
+  createEventWithImportedEntries,
   deleteEvent,
   getEventById,
   setEventStatus,
@@ -22,6 +23,7 @@ import {
   setMetadataUnlocked,
   updateEventDetails,
 } from "@/lib/queries/events";
+import { MAX_IMPORT_ENTRIES, normaliseImportedEntry, type ImportedEntry } from "@/lib/pdfImport/entry";
 import { checkTitleLength, formatDeckTitle } from "@/lib/title";
 import type { Event, EventDetailsInput } from "@/lib/types";
 import { validateEventDetails } from "@/lib/validation";
@@ -48,6 +50,49 @@ export async function createEventAction(formData: FormData): Promise<void> {
   }
 
   const event = await createEvent({ name, fullName, date, attendance, createdBy: user.email });
+  redirect(`/events/${event.id}`);
+}
+
+// The PDF is read in the browser; only the lists come here. The browser can send anything, so each
+// list is cleaned up again. Nothing about a list stops the import: odd ones are fixed afterwards.
+export async function importEventAction(
+  details: EventDetailsInput,
+  entries: ImportedEntry[]
+): Promise<ActionResult<null>> {
+  const user = await getCurrentUser();
+  if (!user) {
+    return actionError(NOT_LOGGED_IN);
+  }
+
+  const cleanDetails: EventDetailsInput = {
+    name: String(details?.name ?? "").trim(),
+    fullName: String(details?.fullName ?? "").trim(),
+    date: String(details?.date ?? "").trim(),
+    attendance: Number(details?.attendance),
+  };
+  const problem = validateEventDetails(cleanDetails);
+  if (problem) {
+    return actionError(problem);
+  }
+
+  if (!Array.isArray(entries) || entries.length === 0) {
+    return actionError("There are no decklists to import.");
+  }
+  if (entries.length > MAX_IMPORT_ENTRIES) {
+    return actionError(`That's more than ${MAX_IMPORT_ENTRIES.toLocaleString("en-AU")} decklists.`);
+  }
+  const cleanEntries = entries.map((entry) =>
+    normaliseImportedEntry({
+      playerName: String(entry?.playerName ?? ""),
+      deckName: String(entry?.deckName ?? ""),
+      decklistRaw: String(entry?.decklistRaw ?? ""),
+    })
+  );
+
+  const event = await createEventWithImportedEntries(
+    { ...cleanDetails, createdBy: user.email },
+    cleanEntries
+  );
   redirect(`/events/${event.id}`);
 }
 

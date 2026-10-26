@@ -1,49 +1,59 @@
 "use client";
 
-import { formatPlacing } from "@/lib/placing";
 import type { DecklistWarning } from "@/lib/decklist/types";
 import { CheckIcon, WarnIcon } from "./icons";
 import { warningLabel } from "./warningLabels";
-import type { Entry } from "@/lib/types";
+
+// what a row shows; the event page and the standalone checker each build these from their own lists
+export type EntryRow = {
+  id: string;
+  // the left column: a placing, or a position in the file
+  label: string;
+  playerName: string;
+  deckName: string;
+  published?: boolean;
+};
 
 export function EntriesList({
-  entries,
-  attendance,
-  selectedEntryId,
-  isNewEntryOpen,
-  locked,
+  rows,
+  selectedId,
+  isNewEntryOpen = false,
+  locked = false,
+  compact = false,
   onSelect,
   warningsByEntryId,
+  emptyText = "No entries yet.",
 }: {
-  entries: Entry[];
-  attendance: number;
-  selectedEntryId: string | null;
-  isNewEntryOpen: boolean;
-  locked: boolean;
+  rows: EntryRow[];
+  selectedId: string | null;
+  isNewEntryOpen?: boolean;
+  locked?: boolean;
+  // a narrow left column, for labels that are just a number
+  compact?: boolean;
   onSelect: (entryId: string) => void;
   warningsByEntryId: Map<string, DecklistWarning[]>;
+  emptyText?: string;
 }) {
   return (
-    <div className="entries-pane">
-      {entries.map((entry) => {
-        const isSelected = entry.id === selectedEntryId;
+    <div className="entries-pane" data-compact={compact}>
+      {rows.map((row) => {
+        const isSelected = row.id === selectedId;
         const isClickable = !locked || isSelected;
-        const warnings = warningsByEntryId.get(entry.id) ?? [];
-        const isPublished = entry.moxfieldDeckId !== null;
+        const warnings = warningsByEntryId.get(row.id) ?? [];
         return (
           <button
-            key={entry.id}
+            key={row.id}
             type="button"
             className="entry-row"
             data-selected={isSelected}
-            data-published={isPublished}
+            data-published={row.published === true}
             aria-current={isSelected ? "true" : undefined}
             disabled={!isClickable}
-            onClick={() => onSelect(entry.id)}
+            onClick={() => onSelect(row.id)}
           >
             <span className="entry-placing">
-              {formatPlacing(entry, attendance)}
-              {isPublished ? (
+              {row.label}
+              {row.published ? (
                 <>
                   <CheckIcon />
                   <span className="sr-only">Published</span>
@@ -51,8 +61,8 @@ export function EntriesList({
               ) : null}
             </span>
             <span className="min-w-0">
-              <span className="block truncate font-medium">{entry.playerName}</span>
-              <span className="block truncate text-sm text-muted">{entry.deckName}</span>
+              <span className="block truncate font-medium">{row.playerName}</span>
+              <span className="block truncate text-sm text-muted">{row.deckName}</span>
               {warnings.length ? (
                 <span
                   className="entry-warning block truncate text-sm text-warn"
@@ -73,10 +83,10 @@ export function EntriesList({
           <span>(new entry)</span>
         </div>
       ) : null}
-      {entries.length === 0 && !isNewEntryOpen ? (
+      {rows.length === 0 && !isNewEntryOpen ? (
         <div className="entry-row" data-placeholder="true">
           <span></span>
-          <span>No entries yet.</span>
+          <span>{emptyText}</span>
         </div>
       ) : null}
     </div>
