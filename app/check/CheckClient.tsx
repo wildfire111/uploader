@@ -78,29 +78,36 @@ export function CheckClient({
   }
 
   const selected = lists.find((list) => list.id === selectedId);
+  const loaded = lists.length > 0;
 
   return (
     <main className="event-page">
-      <div className="page-header">
-        <h1>Decklist checker</h1>
-      </div>
-      <p className="text-muted">
-        Choose the &ldquo;Decklist Multi-print&rdquo; PDF from Melee.gg to check every list in it.
-        The PDF is read in your browser and isn&apos;t uploaded.
-      </p>
-      <p>
-        <input
-          type="file"
-          accept="application/pdf,.pdf"
-          onChange={onFile}
-          disabled={reading}
-          aria-label="Melee decklist PDF"
-        />
-        {reading ? " Reading PDF…" : null}
-      </p>
+      {loaded ? null : (
+        <>
+          <div className="page-header">
+            <h1>Decklist checker</h1>
+          </div>
+          <p className="text-muted">
+            Choose the &ldquo;Decklist Multi-print&rdquo; PDF from Melee.gg to check every list in
+            it. The PDF is read in your browser and isn&apos;t uploaded.
+          </p>
+        </>
+      )}
+      {loaded ? null : (
+        <p>
+          <input
+            type="file"
+            accept="application/pdf,.pdf"
+            onChange={onFile}
+            disabled={reading}
+            aria-label="Melee decklist PDF"
+          />
+          {reading ? " Reading PDF…" : null}
+        </p>
+      )}
       {error ? <p className="error">{error}</p> : null}
 
-      {lists.length > 0 ? (
+      {loaded ? (
         <>
           <p>
             {fileName}: {lists.length} {lists.length === 1 ? "list" : "lists"},{" "}
