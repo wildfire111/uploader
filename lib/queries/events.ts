@@ -65,6 +65,53 @@ export async function createEvent(input: EventDetailsInput & { createdBy: string
   return mapEventRow(result.rows[0]);
 }
 
+export type ImportedEntryInput = {
+  playerName: string;
+  deckName: string;
+  decklistRaw: string;
+};
+
+// The event and all its lists go in together or not at all. Each list gets a placeholder placing in
+// import order and is marked unplaced, so the real placings can be assigned afterwards.
+export async function createEventWithImportedEntries(
+  input: EventDetailsInput & { createdBy: string },
+  entries: ImportedEntryInput[]
+): Promise<Event> {
+  const client = await pool.connect();
+  try {
+    await client.query("begin");
+    const eventResult = await client.query<EventRow>(
+      `insert into events (name, full_name, date, attendance, created_by)
+       values ($1, $2, $3, $4, $5)
+       returning *`,
+      [input.name, input.fullName, input.date, input.attendance, input.createdBy]
+    );
+    const event = eventResult.rows[0];
+    if (entries.length > 0) {
+      await client.query(
+        `insert into entries (event_id, placing_from, placing_to, player_name, deck_name, decklist_raw, placing_assigned)
+         select $1, t.placing_from, null, t.player_name, t.deck_name, t.decklist_raw, false
+         from unnest($2::int[], $3::text[], $4::text[], $5::text[])
+           as t(placing_from, player_name, deck_name, decklist_raw)`,
+        [
+          event.id,
+          entries.map((_, index) => index + 1),
+          entries.map((entry) => entry.playerName),
+          entries.map((entry) => entry.deckName),
+          entries.map((entry) => entry.decklistRaw),
+        ]
+      );
+    }
+    await client.query("commit");
+    return mapEventRow(event);
+  } catch (error) {
+    await client.query("rollback");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 export async function updateEventDetails(id: string, input: EventDetailsInput): Promise<Event> {
   const result = await pool.query<EventRow>(
     `update events

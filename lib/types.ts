@@ -26,6 +26,8 @@ export type Entry = {
   // deck created by moxfield but the cards failed; the retry reuses it
   moxfieldPendingDeckId: string | null;
   publishClaimedAt: string | null;
+  // false for an imported list until someone gives it its real placing; placingFrom is then a placeholder
+  placingAssigned: boolean;
   createdAt: string;
 };
 

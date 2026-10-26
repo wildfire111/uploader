@@ -22,11 +22,13 @@ import {
   canSubmitEvent,
   canUnlockMetadata,
 } from "@/lib/permissions";
+import { placingWarnings } from "@/lib/placing";
 import type { AllowedUser, Entry, Event } from "@/lib/types";
 import { EntriesList } from "./EntriesList";
 import { EntryForm } from "./EntryForm";
 import { sortEntries } from "./entryFields";
 import { EventHeader } from "./EventHeader";
+import { QuickAssign } from "./QuickAssign";
 import { runAction } from "./runAction";
 import { useDecklistChecks } from "./useDecklistChecks";
 import { useEntryEditor } from "./useEntryEditor";
@@ -102,7 +104,23 @@ export function EventDetailClient({
     });
   }
 
+  function placingChanged(changed: Entry) {
+    setEntries((current) => sortEntries(current.map((e) => (e.id === changed.id ? changed : e))));
+  }
+
   function submitEvent() {
+    // odd placings are worth a look, but they don't stop a submit
+    const { duplicates, skipped } = placingWarnings(entries);
+    const notes: string[] = [];
+    if (duplicates.length > 0) {
+      notes.push(`More than one list has the exact placing ${duplicates.join(", ")}.`);
+    }
+    if (skipped.length > 0) {
+      notes.push(`No list has the placing ${skipped.join(", ")}.`);
+    }
+    if (notes.length > 0 && !window.confirm(`${notes.join("\n")}\n\nSubmit it anyway?`)) {
+      return;
+    }
     runAction(startTransition, setActionError, async () => {
       const result = await submitEventAction(event.id);
       if (!result.ok) {
@@ -211,6 +229,14 @@ export function EventDetailClient({
 
       <div className="event-layout">
         <div className="entries-column">
+          {pageIsEditable ? (
+            <QuickAssign
+              entries={entries}
+              attendance={event.attendance}
+              locked={editInProgress}
+              onChanged={placingChanged}
+            />
+          ) : null}
           <EntriesList
             entries={entries}
             attendance={event.attendance}

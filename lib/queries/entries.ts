@@ -13,6 +13,7 @@ type EntryRow = {
   moxfield_deck_id: string | null;
   moxfield_pending_deck_id: string | null;
   publish_claimed_at: Date | null;
+  placing_assigned: boolean;
   created_at: Date;
 };
 
@@ -28,6 +29,7 @@ function mapEntryRow(row: EntryRow): Entry {
     moxfieldDeckId: row.moxfield_deck_id,
     moxfieldPendingDeckId: row.moxfield_pending_deck_id,
     publishClaimedAt: row.publish_claimed_at ? row.publish_claimed_at.toISOString() : null,
+    placingAssigned: row.placing_assigned,
     createdAt: row.created_at.toISOString(),
   };
 }
@@ -36,7 +38,7 @@ export async function getEntriesForEvent(eventId: string): Promise<Entry[]> {
   const result = await pool.query<EntryRow>(
     `select * from entries
      where event_id = $1
-     order by placing_from asc, created_at asc`,
+     order by placing_assigned desc, placing_from asc, created_at asc`,
     [eventId]
   );
   return result.rows.map(mapEntryRow);
@@ -65,13 +67,51 @@ export async function createEntry(input: EntryInput & { eventId: string }): Prom
   return mapEntryRow(result.rows[0]);
 }
 
-export async function updateEntry(id: string, input: EntryInput): Promise<Entry> {
+// Gives an imported list its real placing, or (with placing null) takes it back to unplaced. The
+// placeholder stays in placing_from, so an undone assignment goes back to where it sat in the import.
+export async function assignPlacing(
+  id: string,
+  placing: { placingFrom: number; placingTo: number | null } | null,
+  placeholder?: number
+): Promise<Entry> {
+  const result = placing
+    ? await pool.query<EntryRow>(
+        `update entries
+         set placing_from = $2, placing_to = $3, placing_assigned = true
+         where id = $1
+         returning *`,
+        [id, placing.placingFrom, placing.placingTo]
+      )
+    : await pool.query<EntryRow>(
+        `update entries
+         set placing_from = $2, placing_to = null, placing_assigned = false
+         where id = $1
+         returning *`,
+        [id, placeholder ?? 1]
+      );
+  return mapEntryRow(result.rows[0]);
+}
+
+export async function updateEntry(
+  id: string,
+  input: EntryInput,
+  placingAssigned: boolean
+): Promise<Entry> {
   const result = await pool.query<EntryRow>(
     `update entries
-     set placing_from = $2, placing_to = $3, player_name = $4, deck_name = $5, decklist_raw = $6
+     set placing_from = $2, placing_to = $3, player_name = $4, deck_name = $5, decklist_raw = $6,
+         placing_assigned = $7
      where id = $1
      returning *`,
-    [id, input.placingFrom, input.placingTo, input.playerName, input.deckName, input.decklistRaw]
+    [
+      id,
+      input.placingFrom,
+      input.placingTo,
+      input.playerName,
+      input.deckName,
+      input.decklistRaw,
+      placingAssigned,
+    ]
   );
   return mapEntryRow(result.rows[0]);
 }

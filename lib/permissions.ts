@@ -54,6 +54,10 @@ export function canSubmitEvent(user: AllowedUser, event: Event, entries: Entry[]
   if (entries.length === 0) {
     return false;
   }
+  // an imported list has no real placing yet, and the title and publish order depend on it
+  if (entries.some((entry) => !entry.placingAssigned)) {
+    return false;
+  }
   return canEditEvent(user, event);
 }
 

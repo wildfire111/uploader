@@ -46,6 +46,7 @@ function makeEntry(overrides: Partial<Entry> = {}): Entry {
     moxfieldDeckId: null,
     moxfieldPendingDeckId: null,
     publishClaimedAt: null,
+    placingAssigned: true,
     createdAt: "2026-09-01T00:00:00Z",
     ...overrides,
   };
@@ -144,6 +145,11 @@ describe("canSubmitEvent", () => {
   it("cannot submit an event that isn't a draft", () => {
     const event = makeEvent({ status: "submitted" });
     expect(canSubmitEvent(creator, event, [makeEntry()])).toBe(false);
+  });
+
+  it("cannot submit while any list is still unplaced", () => {
+    const entries = [makeEntry(), makeEntry({ id: "entry-2", placingAssigned: false })];
+    expect(canSubmitEvent(creator, makeEvent({ status: "draft" }), entries)).toBe(false);
   });
 });
 

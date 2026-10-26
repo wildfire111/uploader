@@ -14,6 +14,7 @@ function makeEntry(overrides: Partial<Entry> = {}): Entry {
     moxfieldDeckId: null,
     moxfieldPendingDeckId: null,
     publishClaimedAt: null,
+    placingAssigned: true,
     createdAt: "2026-10-01T00:00:00.000Z",
     ...overrides,
   };

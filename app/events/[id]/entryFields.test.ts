@@ -4,6 +4,7 @@ import {
   entryToFields,
   fieldsEqual,
   fieldsToInput,
+  matchEntries,
   newEntryFields,
   pickDefaultSelection,
   sortEntries,
@@ -22,6 +23,7 @@ function makeEntry(overrides: Partial<Entry> = {}): Entry {
     moxfieldDeckId: null,
     moxfieldPendingDeckId: null,
     publishClaimedAt: null,
+    placingAssigned: true,
     createdAt: "2026-10-01T00:00:00.000Z",
     ...overrides,
   };
@@ -35,6 +37,17 @@ describe("sortEntries", () => {
     expect(sortEntries([second, first, top]).map((e) => e.id)).toEqual(["c", "a", "b"]);
   });
 
+  it("puts unplaced lists after the placed ones, in the order they were imported", () => {
+    const unplacedFirst = makeEntry({ id: "u1", placingFrom: 1, placingAssigned: false });
+    const unplacedSecond = makeEntry({ id: "u2", placingFrom: 2, placingAssigned: false });
+    const placed = makeEntry({ id: "p", placingFrom: 30 });
+    expect(sortEntries([unplacedSecond, placed, unplacedFirst]).map((e) => e.id)).toEqual([
+      "p",
+      "u1",
+      "u2",
+    ]);
+  });
+
   it("does not change the list it is given", () => {
     const entries = [makeEntry({ id: "a", placingFrom: 2 }), makeEntry({ id: "b", placingFrom: 1 })];
     sortEntries(entries);
@@ -42,7 +55,35 @@ describe("sortEntries", () => {
   });
 });
 
+describe("matchEntries", () => {
+  const entries = [
+    makeEntry({ id: "a", playerName: "Trent C", deckName: "Simic Shops" }),
+    makeEntry({ id: "b", playerName: "Henry F", deckName: "Jeskai Midrange" }),
+    makeEntry({ id: "c", playerName: "Trent W", deckName: "Jeskai Control" }),
+  ];
+
+  it("matches words in the player or deck name, in any case", () => {
+    expect(matchEntries(entries, "trent").map((e) => e.id)).toEqual(["a", "c"]);
+    expect(matchEntries(entries, "JESKAI").map((e) => e.id)).toEqual(["b", "c"]);
+  });
+
+  it("needs every word to match", () => {
+    expect(matchEntries(entries, "trent jeskai").map((e) => e.id)).toEqual(["c"]);
+  });
+
+  it("shows the first few when nothing is typed, and caps the list", () => {
+    const many = Array.from({ length: 20 }, (_, i) => makeEntry({ id: `e${i}` }));
+    expect(matchEntries(many, "")).toHaveLength(8);
+  });
+});
+
 describe("entryToFields and fieldsToInput", () => {
+  it("leaves the placing blank for an unplaced list, so its placeholder never shows", () => {
+    const fields = entryToFields(makeEntry({ placingFrom: 17, placingAssigned: false }));
+    expect(fields.placingFrom).toBe("");
+    expect(fields.placingTo).toBe("");
+  });
+
   it("turns an entry into form text and back", () => {
     const entry = makeEntry({ placingFrom: 3, placingTo: 4 });
     expect(entryToFields(entry)).toEqual({

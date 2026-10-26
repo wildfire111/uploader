@@ -11,12 +11,20 @@ export const MAX_PLAYER_NAME_LENGTH = 80;
 export const MAX_DECK_NAME_LENGTH = 80;
 export const MAX_DECKLIST_LENGTH = 20_000;
 
-export function validateEntryInput(input: EntryInput): string | null {
-  if (!Number.isInteger(input.placingFrom) || input.placingFrom < 1) {
+export function validatePlacing(placingFrom: number, placingTo: number | null): string | null {
+  if (!Number.isInteger(placingFrom) || placingFrom < 1) {
     return "Placing must be a whole number of 1 or more.";
   }
-  if (input.placingTo !== null && input.placingTo <= input.placingFrom) {
+  if (placingTo !== null && (!Number.isInteger(placingTo) || placingTo <= placingFrom)) {
     return "Placing (to) must be greater than placing (from).";
+  }
+  return null;
+}
+
+export function validateEntryInput(input: EntryInput): string | null {
+  const placingProblem = validatePlacing(input.placingFrom, input.placingTo);
+  if (placingProblem) {
+    return placingProblem;
   }
   if (input.playerName === "" || input.deckName === "" || input.decklistRaw.trim() === "") {
     return "Player, deck, and decklist are all required.";
