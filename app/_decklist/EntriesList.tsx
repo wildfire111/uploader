@@ -1,18 +1,8 @@
 "use client";
 
 import type { DecklistWarning } from "@/lib/decklist/types";
-
-const WARNING_LABELS: Record<DecklistWarning["code"], string> = {
-  points: "points",
-  "deck-size": "deck size",
-  "unknown-card": "card name",
-  singleton: "duplicates",
-  companion: "companion",
-};
-
-function warningLabel(warnings: DecklistWarning[]): string {
-  return [...new Set(warnings.map((warning) => WARNING_LABELS[warning.code]))].join(", ");
-}
+import { CheckIcon, WarnIcon } from "./icons";
+import { warningLabel } from "./warningLabels";
 
 // what a row shows; the event page and the standalone checker each build these from their own lists
 export type EntryRow = {
@@ -49,45 +39,47 @@ export function EntriesList({
       {rows.map((row) => {
         const isSelected = row.id === selectedId;
         const isClickable = !locked || isSelected;
-        const warnings = warningsByEntryId.get(row.id);
+        const warnings = warningsByEntryId.get(row.id) ?? [];
         return (
-          <div
+          <button
             key={row.id}
+            type="button"
             className="entry-row"
             data-selected={isSelected}
             data-published={row.published === true}
-            role="button"
-            tabIndex={isClickable ? 0 : -1}
-            aria-disabled={!isClickable}
-            style={isClickable ? undefined : { cursor: "default", opacity: 0.6 }}
-            onClick={() => {
-              if (isClickable) {
-                onSelect(row.id);
-              }
-            }}
+            aria-current={isSelected ? "true" : undefined}
+            disabled={!isClickable}
+            onClick={() => onSelect(row.id)}
           >
-            <span>
+            <span className="entry-placing">
               {row.label}
-              {row.published ? " ✓" : ""}
+              {row.published ? (
+                <>
+                  <CheckIcon />
+                  <span className="sr-only">Published</span>
+                </>
+              ) : null}
             </span>
             <span className="min-w-0">
-              <span className="block truncate">{row.playerName}</span>
+              <span className="block truncate font-medium">{row.playerName}</span>
               <span className="block truncate text-sm text-muted">{row.deckName}</span>
-              {warnings?.length ? (
+              {warnings.length ? (
                 <span
-                  className="block truncate text-sm text-warn"
+                  className="entry-warning block truncate text-sm text-warn"
                   title={warnings.map((warning) => warning.message).join("\n")}
                 >
-                  &#9888; {warningLabel(warnings)}
+                  <WarnIcon />
+                  <span className="sr-only">Warnings: </span>
+                  {warningLabel(warnings)}
                 </span>
               ) : null}
             </span>
-          </div>
+          </button>
         );
       })}
       {isNewEntryOpen ? (
         <div className="entry-row" data-selected="true" data-placeholder="true">
-          <span>&#x25B8;</span>
+          <span className="entry-placing" aria-hidden="true">&hellip;</span>
           <span>(new entry)</span>
         </div>
       ) : null}

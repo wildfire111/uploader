@@ -1,26 +1,61 @@
 @import "tailwindcss";
 
-/* colours copied from the 7pview project */
+/* a parchment ground like card stock, black card-frame rules, and the banner's cyan as the one accent */
 @theme {
-  --color-page: #0a0a0a;
-  --color-ink: #ededed;
-  --color-panel: #171717;
-  --color-raised: #262626;
-  --color-line: #404040;
-  --color-muted: #a3a3a3;
-  --color-brand: #006fee;
-  --color-brand-hover: #338ef7;
-  --color-link: #60a5fa;
-  --color-link-hover: #93c5fd;
-  --color-danger: #f87171;
-  /* warnings: a salmon pink, kept apart from the red used for errors */
-  --color-warn: #ffa99a;
-  --color-ok: #4ade80;
+  --color-page: #e6dcc3;
+  --color-ink: #231a10;
+  --color-panel: #f6efdc;
+  --color-raised: #ecdfc0;
+  /* the hairline inside a card frame and between rows */
+  --color-line: #b8a67f;
+  /* the heavy outer rule of a card frame */
+  --color-rule: #0b0805;
+  /* the name-line bar at the top of a framed panel */
+  --color-title: #d9c89b;
+  --color-muted: #6b5a43;
+  --color-brand: #0b6f8f;
+  --color-brand-hover: #095a74;
+  --color-link: #0b6f8f;
+  --color-link-hover: #084b61;
+  --color-danger: #a3261a;
+  /* warnings: a brick red-orange, kept apart from the red used for errors */
+  --color-warn: #8a3a14;
+  --color-ok: #1d7a43;
+  /* text on a brand-coloured button */
+  --color-on-brand: #ffffff;
+}
+
+/* dark mode is the ink-violet ground; it is on when <html> carries data-theme="dark" */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+@theme inline {
+  --font-sans: var(--font-body), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: var(--font-title), "Iowan Old Style", Georgia, serif;
 }
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
   --site-header-height: 65px;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-page: #17131f;
+  --color-ink: #ece8f5;
+  --color-panel: #211b2c;
+  --color-raised: #2a2338;
+  --color-line: #4a3d63;
+  --color-rule: #050308;
+  --color-title: #2f2640;
+  --color-muted: #a59fb8;
+  --color-brand: #4cc3e0;
+  --color-brand-hover: #7bd6ec;
+  --color-link: #6fd0e8;
+  --color-link-hover: #a5e4f3;
+  --color-danger: #ff8a7a;
+  --color-warn: #ffa99a;
+  --color-ok: #5fd68a;
+  --color-on-brand: #06222b;
 }
 
 @layer base {
@@ -41,11 +76,15 @@
   h1,
   h2,
   h3 {
-    @apply font-bold;
+    @apply font-display font-bold;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--color-brand) 30%, transparent);
   }
 
   h1 {
-    @apply mb-4 text-[1.6rem];
+    @apply mb-4 text-[1.9rem];
   }
 
   h2 {
@@ -95,7 +134,7 @@
 
   input,
   textarea {
-    @apply rounded-md border border-line bg-panel px-2 py-1.5 text-ink placeholder:text-neutral-500;
+    @apply rounded border border-line bg-panel px-2 py-1.5 text-ink placeholder:text-muted/80;
     font: inherit;
   }
 
@@ -109,12 +148,17 @@
   }
 
   button {
-    @apply cursor-pointer rounded-md border border-line bg-raised px-3.5 py-1.5 text-ink hover:bg-line disabled:cursor-not-allowed disabled:opacity-50;
+    @apply cursor-pointer rounded border border-rule bg-raised px-3.5 py-1.5 text-ink hover:bg-title disabled:cursor-not-allowed disabled:opacity-50;
     font: inherit;
   }
 
+  button:focus-visible,
+  summary:focus-visible {
+    @apply outline-2 outline-offset-2 outline-brand-hover;
+  }
+
   button[data-variant="primary"] {
-    @apply border-brand bg-brand text-white hover:border-brand-hover hover:bg-brand-hover;
+    @apply border-rule bg-brand text-on-brand hover:border-rule hover:bg-brand-hover;
   }
 
   button[data-variant="danger"] {
@@ -210,7 +254,10 @@
   }
 
   .entries-pane {
-    @apply min-h-0 overflow-y-auto rounded-lg border border-line bg-panel;
+    @apply min-h-0 overflow-y-auto rounded-lg border-2 border-rule bg-panel;
+    box-shadow:
+      inset 0 0 0 3px var(--color-panel),
+      inset 0 0 0 4px var(--color-line);
   }
 
   /* fields and buttons stay put, only the decklist scrolls */
@@ -223,7 +270,24 @@
   }
 
   .entry-row {
-    @apply grid cursor-pointer grid-cols-[108px_minmax(0,1fr)] gap-x-2 gap-y-1 border-b border-raised px-3 py-2 hover:bg-raised;
+    @apply grid w-full cursor-pointer grid-cols-[112px_minmax(0,1fr)] items-baseline gap-x-2 gap-y-1 rounded-none border-0 border-b border-raised bg-transparent px-3 py-2 text-left hover:bg-raised;
+  }
+
+  .entry-row:focus-visible {
+    @apply -outline-offset-2;
+  }
+
+  /* placing leads each row: larger, heavier, with figures of equal width so the column lines up */
+  .entry-placing {
+    @apply inline-flex items-center gap-1 text-lg leading-tight font-semibold tabular-nums;
+  }
+
+  .entry-warning {
+    @apply flex items-center gap-1;
+  }
+
+  .icon {
+    @apply inline-block shrink-0;
   }
 
   .entries-pane[data-compact="true"] .entry-row {
@@ -238,7 +302,7 @@
     @apply bg-brand/20;
   }
 
-  .entry-row[data-published="true"] {
+  .entry-row[data-published="true"] .entry-placing {
     @apply text-ok;
   }
 
@@ -358,6 +422,186 @@
   }
 
   .decklist-readonly {
-    @apply rounded-md border border-line bg-panel p-2 font-mono whitespace-pre-wrap;
+    @apply rounded-lg border-2 border-rule bg-panel p-2 font-mono whitespace-pre-wrap;
+  }
+}
+
+@layer components {
+  .event-meta {
+    @apply my-0 flex flex-wrap items-center gap-x-2 gap-y-1 text-muted;
+  }
+
+  .page-header h1 {
+    @apply mb-1;
+  }
+
+  .status-badge {
+    @apply rounded-full border border-line px-2.5 py-0.5 text-sm text-ink;
+  }
+
+  .status-badge[data-status="submitted"] {
+    @apply border-brand/60 bg-brand/15 text-link;
+  }
+
+  .status-badge[data-status="published"] {
+    @apply border-ok/50 bg-ok/10 text-ok;
+  }
+
+  /* a button that reads as a link, for small actions next to text */
+  button.link-button {
+    @apply border-0 bg-transparent p-0 text-link underline underline-offset-4 hover:bg-transparent hover:text-link-hover;
+  }
+
+  .warning-jump {
+    @apply border-0 bg-transparent p-0 text-left text-warn hover:bg-transparent;
+  }
+
+  .warning-jump:not(:disabled):hover .warning-jump-hint,
+  .warning-jump:focus-visible .warning-jump-hint {
+    @apply opacity-100;
+  }
+
+  .warning-jump-hint {
+    @apply opacity-60;
+  }
+
+  .warning:has(.warning-jump) {
+    @apply my-0 mb-2;
+  }
+
+  .action-menu {
+    @apply relative;
+  }
+
+  .action-menu-button {
+    @apply inline-flex items-center gap-1.5;
+  }
+
+  .action-menu-list {
+    @apply absolute right-0 z-10 mt-1 flex min-w-44 flex-col rounded-md border border-line bg-panel p-1;
+    box-shadow: 0 8px 20px rgb(35 26 16 / 0.28);
+  }
+
+  .action-menu-list button {
+    @apply border-0 bg-transparent text-left hover:bg-raised;
+  }
+
+  .action-menu-list button[data-danger="true"] {
+    @apply text-danger hover:bg-danger/15;
+  }
+
+  .publish-status {
+    @apply mb-3 rounded-md border border-brand/40 bg-brand/10 px-3 py-2;
+  }
+
+  .publish-status-line {
+    @apply my-0 mb-2 flex items-baseline justify-between gap-3 tabular-nums;
+  }
+
+  .publish-status progress {
+    @apply block h-2 w-full overflow-hidden rounded-full border-0 bg-raised;
+    appearance: none;
+  }
+
+  .publish-status progress::-webkit-progress-bar {
+    @apply bg-raised;
+  }
+
+  .publish-status progress::-webkit-progress-value {
+    @apply bg-brand;
+    transition: width 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .publish-status progress::-moz-progress-bar {
+    @apply bg-brand;
+  }
+
+  .confirm-dialog {
+    @apply m-auto w-[min(32rem,calc(100vw-2rem))] rounded-lg border-2 border-rule bg-panel p-5 text-ink;
+    box-shadow: 0 16px 40px rgb(35 26 16 / 0.35);
+  }
+
+  .confirm-dialog::backdrop {
+    background: rgb(35 26 16 / 0.55);
+  }
+
+  .confirm-dialog > :last-child {
+    @apply mt-4;
+  }
+}
+
+/* the event page spends its top edge on the work: back link, title and actions share a tight header */
+@layer components {
+  .event-page {
+    @apply pt-3;
+  }
+
+  .back-link {
+    @apply my-0 mb-1 text-sm;
+  }
+
+  .event-page .page-header {
+    @apply mb-3 items-start gap-x-4 gap-y-1;
+  }
+
+  .event-title {
+    @apply flex flex-wrap items-baseline gap-x-4 gap-y-0;
+  }
+
+  .event-title h1 {
+    @apply mb-0 text-2xl;
+  }
+
+  .event-title > p:not(.event-meta, .back-link) {
+    @apply my-1 basis-full;
+  }
+
+  .entry-heading {
+    @apply mb-2 text-lg;
+  }
+}
+
+@layer components {
+  .back-link {
+    @apply basis-full;
+  }
+
+  /* back link, title and meta share a line once there is room; the actions sit level with them */
+  .event-title .back-link {
+    @apply mb-0 basis-auto;
+  }
+
+  .event-page .page-header {
+    @apply items-center;
+  }
+
+  .page-header .button-row button {
+    @apply py-1;
+  }
+}
+
+/* a long event name is cut short with an ellipsis so the actions stay on the title's line */
+@layer components {
+  .event-page .page-header {
+    @apply flex-nowrap;
+  }
+
+  .page-header-main {
+    @apply min-w-0 flex-1;
+  }
+
+  .page-header .button-row {
+    @apply flex-none flex-nowrap;
+  }
+
+  .event-title h1 {
+    @apply max-w-[28ch] min-w-0 truncate;
+  }
+}
+
+@layer components {
+  /* the label changes as publishing runs and waits, so the button keeps one width */
+  .publish-button {
+    @apply min-w-[11.5rem] tabular-nums;
   }
 }
