@@ -11,6 +11,7 @@ export function PublishDialog({
   alreadyPublished,
   problems,
   onConfirm,
+  onReview,
   onCancel,
 }: {
   open: boolean;
@@ -19,6 +20,8 @@ export function PublishDialog({
   alreadyPublished: number;
   problems: { code: string; problem: string; count: number }[];
   onConfirm: () => void;
+  // closes the dialog and opens the first flagged entry
+  onReview: () => void;
   onCancel: () => void;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -56,7 +59,7 @@ export function PublishDialog({
       ) : null}
       {problems.length > 0 ? (
         <div className="warning">
-          <p className="m-0 font-semibold">Still flagged</p>
+          <p className="m-0 font-semibold">Flagged for checking</p>
           <ul className="my-1">
             {problems.map(({ code, problem, count }) => (
               <li key={code}>
@@ -76,8 +79,13 @@ export function PublishDialog({
         <button type="button" onClick={onCancel} autoFocus>
           Cancel
         </button>
+        {problems.length > 0 ? (
+          <button type="button" onClick={onReview}>
+            Review flagged
+          </button>
+        ) : null}
         <button type="button" data-variant="primary" onClick={onConfirm}>
-          Publish {toPublish} {noun}
+          Publish {toPublish} {noun}{problems.length > 0 ? " anyway" : ""}
         </button>
       </div>
     </dialog>

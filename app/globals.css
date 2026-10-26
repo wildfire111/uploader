@@ -483,3 +483,79 @@
     @apply mt-4;
   }
 }
+
+/* the event page spends its top edge on the work: back link, title and actions share a tight header */
+@layer components {
+  .event-page {
+    @apply pt-3;
+  }
+
+  .back-link {
+    @apply my-0 mb-1 text-sm;
+  }
+
+  .event-page .page-header {
+    @apply mb-3 items-start gap-x-4 gap-y-1;
+  }
+
+  .event-title {
+    @apply flex flex-wrap items-baseline gap-x-4 gap-y-0;
+  }
+
+  .event-title h1 {
+    @apply mb-0 text-2xl;
+  }
+
+  .event-title > p:not(.event-meta, .back-link) {
+    @apply my-1 basis-full;
+  }
+
+  .entry-heading {
+    @apply mb-2 text-lg;
+  }
+}
+
+@layer components {
+  .back-link {
+    @apply basis-full;
+  }
+
+  /* back link, title and meta share a line once there is room; the actions sit level with them */
+  .event-title .back-link {
+    @apply mb-0 basis-auto;
+  }
+
+  .event-page .page-header {
+    @apply items-center;
+  }
+
+  .page-header .button-row button {
+    @apply py-1;
+  }
+}
+
+/* a long event name is cut short with an ellipsis so the actions stay on the title's line */
+@layer components {
+  .event-page .page-header {
+    @apply flex-nowrap;
+  }
+
+  .page-header-main {
+    @apply min-w-0 flex-1;
+  }
+
+  .page-header .button-row {
+    @apply flex-none flex-nowrap;
+  }
+
+  .event-title h1 {
+    @apply max-w-[28ch] min-w-0 truncate;
+  }
+}
+
+@layer components {
+  /* the label changes as publishing runs and waits, so the button keeps one width */
+  .publish-button {
+    @apply min-w-[11.5rem] tabular-nums;
+  }
+}

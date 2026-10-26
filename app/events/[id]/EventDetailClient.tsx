@@ -166,11 +166,8 @@ export function EventDetailClient({
 
   return (
     <main className="event-page">
-      <p>
-        <Link href="/">&larr; Events</Link>
-      </p>
-
       <EventHeader
+        backLink={<Link href="/">&larr; Events</Link>}
         event={event}
         details={details}
         entryCount={entries.length}
@@ -243,7 +240,7 @@ export function EventDetailClient({
         <div className="entry-detail-pane" ref={detailPaneRef}>
           {pageIsEditable && selection.type === "new" ? (
             <>
-              <h2>New entry</h2>
+              <h2 className="entry-heading">New entry</h2>
               <EntryForm
                 mode="new"
                 fields={editor.fields}
@@ -262,7 +259,7 @@ export function EventDetailClient({
 
           {selection.type === "existing" && selectedEntry ? (
             <>
-              <h2>Entry</h2>
+              <h2 className="entry-heading">Entry</h2>
               <EntryForm
                 mode={selectedEntryEditable ? "existing" : "readonly"}
                 fields={editor.fields}
@@ -288,6 +285,11 @@ export function EventDetailClient({
         alreadyPublished={publishedCount}
         problems={countEntriesByProblem(unpublishedIds, warningsByEntryId)}
         onCancel={() => setConfirmingPublish(false)}
+        onReview={() => {
+          setConfirmingPublish(false);
+          const firstFlagged = unpublishedIds.find((id) => warningsByEntryId.get(id)?.length);
+          if (firstFlagged) editor.selectEntry(firstFlagged);
+        }}
         onConfirm={() => {
           setConfirmingPublish(false);
           publishing.publish();

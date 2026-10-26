@@ -13,6 +13,7 @@ import type { EventDetailsEditor } from "./useEventDetails";
 
 // the event's title (or its edit form) and the buttons for what can be done with the event
 export function EventHeader({
+  backLink,
   event,
   details,
   entryCount,
@@ -36,6 +37,8 @@ export function EventHeader({
   onReturnToDraft,
   onUnlock,
 }: {
+  // the link back to the events list, placed on the title's line
+  backLink: React.ReactNode;
   event: Event;
   details: EventDetailsEditor;
   entryCount: number;
@@ -79,9 +82,10 @@ export function EventHeader({
 
   return (
     <div className="page-header">
-      <div>
+      <div className="page-header-main">
         {details.editing ? (
           <div>
+            <p className="back-link">{backLink}</p>
             {details.error ? <p className="error">{details.error}</p> : null}
             <div className="field-row">
               <label>
@@ -134,8 +138,9 @@ export function EventHeader({
             </div>
           </div>
         ) : (
-          <>
-            <h1>{event.name}</h1>
+          <div className="event-title">
+            <p className="back-link">{backLink}</p>
+            <h1 title={event.name}>{event.name}</h1>
             <p className="event-meta">
               <span>{formatDisplayDate(event.date)}</span>
               <span aria-hidden="true">&middot;</span>
@@ -159,7 +164,7 @@ export function EventHeader({
                 The details are locked because some lists are already on Moxfield with them.
               </p>
             ) : null}
-          </>
+          </div>
         )}
       </div>
 
@@ -180,10 +185,20 @@ export function EventHeader({
             <button
               type="button"
               data-variant="primary"
+              className="publish-button"
               onClick={onPublish}
               disabled={isPublishing || retryInSeconds !== null}
+              title={
+                retryInSeconds !== null
+                  ? "Publishing failed. It can be tried again when the countdown ends."
+                  : undefined
+              }
             >
-              Publish to Moxfield
+              {isPublishing
+                ? "Publishing\u2026"
+                : retryInSeconds !== null
+                  ? `Retry in ${retryInSeconds}s`
+                  : "Publish to Moxfield"}
             </button>
           ) : null}
         </div>
