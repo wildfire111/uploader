@@ -1,5 +1,67 @@
 import { describe, expect, it } from "vitest";
-import { formatOrdinal, formatPlacing, suggestNextPlacing, type PlacingRange } from "./placing";
+import {
+  formatOrdinal,
+  formatPlacing,
+  placingWarnings,
+  suggestNextPlacing,
+  type PlacingRange,
+} from "./placing";
+
+function placed(placingFrom: number, placingTo: number | null = null): PlacingRange {
+  return { placingFrom, placingTo, placingAssigned: true };
+}
+
+describe("unplaced entries", () => {
+  const unplaced: PlacingRange = { placingFrom: 7, placingTo: null, placingAssigned: false };
+
+  it("formats as Unplaced instead of showing the placeholder", () => {
+    expect(formatPlacing(unplaced, 22)).toBe("Unplaced");
+  });
+
+  it("is ignored when suggesting the next placing", () => {
+    expect(suggestNextPlacing([placed(1), unplaced])).toEqual({ placingFrom: 2, placingTo: null });
+    expect(suggestNextPlacing([unplaced])).toEqual({ placingFrom: 1, placingTo: null });
+  });
+});
+
+describe("placingWarnings", () => {
+  it("has nothing to say about a clean set of placings", () => {
+    expect(placingWarnings([placed(1), placed(2), placed(3, 4), placed(3, 4), placed(5)])).toEqual({
+      duplicates: [],
+      skipped: [],
+    });
+  });
+
+  it("flags two entries on the same exact placing", () => {
+    expect(placingWarnings([placed(1), placed(2), placed(2), placed(3)]).duplicates).toEqual([2]);
+  });
+
+  it("does not flag a shared band, even when it holds more entries than places", () => {
+    expect(placingWarnings([placed(1), placed(2, 3), placed(2, 3), placed(2, 3)]).duplicates).toEqual([]);
+  });
+
+  it("only compares exact placings with each other, whatever bands are around them", () => {
+    expect(placingWarnings([placed(9, 16), placed(12), placed(12)]).duplicates).toEqual([12]);
+    expect(placingWarnings([placed(9, 16), placed(12)]).duplicates).toEqual([]);
+  });
+
+  it("flags a skipped place only when something sits below and above it", () => {
+    expect(placingWarnings([placed(1), placed(2), placed(4)]).skipped).toEqual([3]);
+    expect(placingWarnings([placed(3), placed(4)]).skipped).toEqual([]);
+    expect(placingWarnings([placed(1), placed(2)]).skipped).toEqual([]);
+  });
+
+  it("counts every place in a band as held", () => {
+    expect(placingWarnings([placed(1), placed(2, 8), placed(9)]).skipped).toEqual([]);
+    expect(placingWarnings([placed(1), placed(3, 4), placed(7)]).skipped).toEqual([2, 5, 6]);
+  });
+
+  it("ignores unplaced entries", () => {
+    const unplaced: PlacingRange = { placingFrom: 2, placingTo: null, placingAssigned: false };
+    expect(placingWarnings([placed(1), unplaced, placed(3)]).skipped).toEqual([2]);
+    expect(placingWarnings([placed(1), unplaced, unplaced]).duplicates).toEqual([]);
+  });
+});
 
 describe("suggestNextPlacing", () => {
   it("suggests 01st for the first entry of an empty event", () => {

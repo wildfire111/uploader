@@ -19,6 +19,9 @@ export default async function EventsPage({
       <div className="page-header">
         <h1>Events</h1>
         <div className="button-row">
+          <Link href="/events/import">
+            <button type="button">Import event from Melee PDF</button>
+          </Link>
           <Link href="/events/new">
             <button type="button" data-variant="primary">
               + New event

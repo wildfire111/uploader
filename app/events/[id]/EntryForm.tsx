@@ -77,6 +77,7 @@ export function EntryForm({
               {
                 placingFrom: Number(fields.placingFrom),
                 placingTo: fields.placingTo ? Number(fields.placingTo) : null,
+                placingAssigned: fields.placingFrom.trim() !== "",
               },
               attendance
             )}

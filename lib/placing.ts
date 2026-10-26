@@ -1,7 +1,13 @@
 export type PlacingRange = {
   placingFrom: number;
   placingTo: number | null;
+  // an imported list has a placeholder placing until someone assigns the real one; absent means placed
+  placingAssigned?: boolean;
 };
+
+function isPlaced(range: PlacingRange): boolean {
+  return range.placingAssigned !== false;
+}
 
 // wide enough for the biggest placing in the event: 01st up to 99 players, 001st up to 999, and so on
 function placingWidth(attendance: number): number {
@@ -25,6 +31,9 @@ export function formatOrdinal(position: number, attendance: number): string {
 }
 
 export function formatPlacing(range: PlacingRange, attendance: number): string {
+  if (!isPlaced(range)) {
+    return "Unplaced";
+  }
   if (range.placingTo === null) {
     return formatOrdinal(range.placingFrom, attendance);
   }
@@ -32,7 +41,8 @@ export function formatPlacing(range: PlacingRange, attendance: number): string {
 }
 
 // repeats a shared range until it's full, then moves on (03rd/04th at 3, 05th/08th at 5)
-export function suggestNextPlacing(existingEntries: PlacingRange[]): PlacingRange {
+export function suggestNextPlacing(allEntries: PlacingRange[]): PlacingRange {
+  const existingEntries = allEntries.filter(isPlaced);
   if (existingEntries.length === 0) {
     return { placingFrom: 1, placingTo: null };
   }
@@ -64,4 +74,52 @@ export function suggestNextPlacing(existingEntries: PlacingRange[]): PlacingRang
     return { placingFrom: 5, placingTo: 8 };
   }
   return { placingFrom: nextPosition, placingTo: null };
+}
+
+export type PlacingWarnings = {
+  // exact placings (no "to") held by more than one entry
+  duplicates: number[];
+  // places nobody holds, between a placing below and a placing above
+  skipped: number[];
+};
+
+// Things worth a second look before submitting. They never block: ties are written as bands, and
+// bands that overlap are left alone.
+export function placingWarnings(entries: PlacingRange[]): PlacingWarnings {
+  const placedEntries = entries.filter(isPlaced);
+
+  const exactCounts = new Map<number, number>();
+  for (const entry of placedEntries) {
+    if (entry.placingTo === null) {
+      exactCounts.set(entry.placingFrom, (exactCounts.get(entry.placingFrom) ?? 0) + 1);
+    }
+  }
+  const duplicates = [...exactCounts.entries()]
+    .filter(([, count]) => count > 1)
+    .map(([placing]) => placing)
+    .sort((a, b) => a - b);
+
+  if (placedEntries.length === 0) {
+    return { duplicates, skipped: [] };
+  }
+
+  const held = new Set<number>();
+  let lowest = Infinity;
+  let highest = -Infinity;
+  for (const entry of placedEntries) {
+    const last = entry.placingTo ?? entry.placingFrom;
+    lowest = Math.min(lowest, entry.placingFrom);
+    highest = Math.max(highest, last);
+    for (let place = entry.placingFrom; place <= last; place++) {
+      held.add(place);
+    }
+  }
+
+  const skipped: number[] = [];
+  for (let place = lowest + 1; place < highest; place++) {
+    if (!held.has(place)) {
+      skipped.push(place);
+    }
+  }
+  return { duplicates, skipped };
 }
