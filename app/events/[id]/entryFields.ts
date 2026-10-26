@@ -18,14 +18,14 @@ export function sortEntries(entries: Entry[]): Entry[] {
 const MAX_MATCHES = 8;
 
 // quick assign: every word typed has to be somewhere in the player or deck name
-export function matchEntries(unplaced: Entry[], query: string): Entry[] {
+export function matchEntries(unplaced: Entry[], query: string, limit = MAX_MATCHES): Entry[] {
   const words = query.toLowerCase().split(/\s+/).filter(Boolean);
   return unplaced
     .filter((entry) => {
       const haystack = `${entry.playerName} ${entry.deckName}`.toLowerCase();
       return words.every((word) => haystack.includes(word));
     })
-    .slice(0, MAX_MATCHES);
+    .slice(0, limit);
 }
 
 export function entryToFields(entry: Entry): EntryFieldValues {

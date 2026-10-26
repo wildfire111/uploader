@@ -7,6 +7,8 @@ import type { Entry } from "@/lib/types";
 import { matchEntries } from "./entryFields";
 
 const MAX_RECENT = 5;
+// the list scrolls, so it can hold far more than fits on screen
+const MAX_SHOWN = 100;
 
 type Assigned = { entry: Entry; placeholder: number };
 
@@ -17,14 +19,13 @@ function digitsOnly(value: string): string {
 export function QuickAssign({
   entries,
   attendance,
-  locked,
   onChanged,
+  onDone,
 }: {
   entries: Entry[];
   attendance: number;
-  // another edit is open, so this stays out of the way
-  locked: boolean;
   onChanged: (entry: Entry) => void;
+  onDone: () => void;
 }) {
   const nameRef = useRef<HTMLInputElement>(null);
   const placingRef = useRef<HTMLInputElement>(null);
@@ -39,7 +40,7 @@ export function QuickAssign({
 
   const unplaced = entries.filter((entry) => !entry.placingAssigned);
   const placedCount = entries.length - unplaced.length;
-  const matches = matchEntries(unplaced, query);
+  const matches = matchEntries(unplaced, query, MAX_SHOWN);
 
   function reset() {
     setQuery("");
@@ -124,15 +125,21 @@ export function QuickAssign({
     setRecent((current) => current.filter((item) => item.entry.id !== assigned.entry.id));
   }
 
-  if (unplaced.length === 0 && recent.length === 0) {
-    return null;
-  }
-
   return (
-    <section className="quick-assign" aria-label="Place lists">
-      <h2>
-        Place lists &middot; {placedCount} of {entries.length} placed
-      </h2>
+    <section
+      className="flex flex-col gap-3 rounded-lg border border-brand/40 bg-panel p-4"
+      aria-label="Place lists"
+    >
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="m-0">Placing lists</h2>
+        <button type="button" onClick={onDone}>
+          Done
+        </button>
+      </div>
+      <p className="text-sm text-muted">
+        {placedCount} of {entries.length} placed. Type a player, press Enter to pick them, then
+        type their placing and press Enter.
+      </p>
 
       {unplaced.length > 0 ? (
         <>
@@ -142,12 +149,13 @@ export function QuickAssign({
             ref={nameRef}
             type="text"
             autoComplete="off"
+            autoFocus
             role="combobox"
             aria-expanded={!chosen}
             aria-controls="quick-assign-matches"
             placeholder="Start typing a player or deck name"
             value={chosen ? chosen.playerName : query}
-            disabled={locked || chosen !== null}
+            disabled={chosen !== null}
             onChange={(event) => {
               setQuery(event.target.value);
               setHighlight(0);
@@ -189,7 +197,7 @@ export function QuickAssign({
               </div>
             </>
           ) : (
-            <div id="quick-assign-matches" role="listbox">
+            <div id="quick-assign-matches" role="listbox" className="entries-pane max-h-96">
               {matches.map((entry, index) => (
                 <div
                   key={entry.id}
@@ -199,19 +207,21 @@ export function QuickAssign({
                   data-selected={index === highlight}
                   onClick={() => choose(entry)}
                 >
-                  <span></span>
+                  <span className="text-muted">Unplaced</span>
                   <span className="min-w-0">
                     <span className="block truncate">{entry.playerName}</span>
                     <span className="block truncate text-sm text-muted">{entry.deckName}</span>
                   </span>
                 </div>
               ))}
-              {matches.length === 0 ? <p className="text-sm text-muted">No unplaced list matches.</p> : null}
+              {matches.length === 0 ? (
+                <p className="p-3 text-sm text-muted">No unplaced list matches.</p>
+              ) : null}
             </div>
           )}
         </>
       ) : (
-        <p>Every list is placed.</p>
+        <p>Every list is placed. Press Done to review them and submit.</p>
       )}
 
       {error ? <p className="error">{error}</p> : null}

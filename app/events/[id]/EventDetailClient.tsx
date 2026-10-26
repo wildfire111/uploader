@@ -63,6 +63,9 @@ export function EventDetailClient({
   const [entries, setEntries] = useState<Entry[]>(() => sortEntries(initialEntries));
   const [isPending, startTransition] = useTransition();
   const [actionError, setActionError] = useState<string | null>(null);
+  // the placing panel stands in for the list of entries while it's open
+  const [placing, setPlacing] = useState(false);
+  const unplacedCount = entries.filter((e) => !e.placingAssigned).length;
 
   const pageIsEditable = canEditEvent(currentUser, event);
   const details = useEventDetails({ event, setEvent, startTransition });
@@ -229,30 +232,49 @@ export function EventDetailClient({
 
       <div className="event-layout">
         <div className="entries-column">
-          {pageIsEditable ? (
-            <QuickAssign
-              entries={entries}
-              attendance={event.attendance}
-              locked={editInProgress}
-              onChanged={placingChanged}
-            />
-          ) : null}
-          <EntriesList
-            entries={entries}
-            attendance={event.attendance}
-            selectedEntryId={selection.type === "existing" ? selection.entryId : null}
-            isNewEntryOpen={selection.type === "new"}
-            locked={editInProgress}
-            onSelect={editor.selectEntry}
-            warningsByEntryId={warningsByEntryId}
-          />
-          {pageIsEditable && selection.type !== "new" ? (
-            <div>
-              <button type="button" onClick={editor.openNewEntry} disabled={editInProgress}>
-                + Add entry
+          {pageIsEditable && unplacedCount > 0 && !placing ? (
+            <div className="mb-3 flex items-center justify-between gap-3 rounded-md border border-brand/40 bg-brand/10 px-3 py-2">
+              <span>
+                {unplacedCount} of {entries.length} lists still need a placing before this can be
+                submitted.
+              </span>
+              <button
+                type="button"
+                data-variant="primary"
+                onClick={() => setPlacing(true)}
+                disabled={editInProgress}
+              >
+                Place lists
               </button>
             </div>
           ) : null}
+          {placing ? (
+            <QuickAssign
+              entries={entries}
+              attendance={event.attendance}
+              onChanged={placingChanged}
+              onDone={() => setPlacing(false)}
+            />
+          ) : (
+            <>
+              <EntriesList
+                entries={entries}
+                attendance={event.attendance}
+                selectedEntryId={selection.type === "existing" ? selection.entryId : null}
+                isNewEntryOpen={selection.type === "new"}
+                locked={editInProgress}
+                onSelect={editor.selectEntry}
+                warningsByEntryId={warningsByEntryId}
+              />
+              {pageIsEditable && selection.type !== "new" ? (
+                <div>
+                  <button type="button" onClick={editor.openNewEntry} disabled={editInProgress}>
+                    + Add entry
+                  </button>
+                </div>
+              ) : null}
+            </>
+          )}
         </div>
 
         <div className="entry-detail-pane" ref={detailPaneRef}>
