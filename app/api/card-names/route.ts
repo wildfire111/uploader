@@ -1,17 +1,12 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
 import { cardNamesList } from "@/lib/referenceLists";
 
 const FOREVER = "private, max-age=31536000, immutable";
 
 // ?v=<version> comes from the page. The version is in the URL, so the browser can keep a copy
-// until the list changes.
+// until the list changes. No login is needed: this is public card data, and the decklist checker
+// is open to anyone.
 export async function GET(request: Request) {
-  const user = await getCurrentUser();
-  if (!user) {
-    return NextResponse.json({ error: "Not logged in." }, { status: 401 });
-  }
-
   const asked = new URL(request.url).searchParams.get("v");
 
   // the page refreshes a stale list behind its popup before it asks for this

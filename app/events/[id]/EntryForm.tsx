@@ -4,8 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { formatPlacing } from "@/lib/placing";
 import type { CheckLists } from "@/lib/decklist/types";
 import { MAX_DECK_NAME_LENGTH, MAX_DECKLIST_LENGTH, MAX_PLAYER_NAME_LENGTH } from "@/lib/validation";
-import { DecklistChecks } from "./DecklistChecks";
-import { DecklistEditor, DecklistView } from "./DecklistView";
+import { DecklistChecks } from "@/app/_decklist/DecklistChecks";
+import { DecklistEditor } from "@/app/_decklist/DecklistView";
+import { ReadonlyEntry } from "@/app/_decklist/ReadonlyEntry";
 import type { EntryFieldValues } from "./types";
 
 type Mode = "new" | "existing" | "readonly";
@@ -69,38 +70,20 @@ export function EntryForm({
 
   if (mode === "readonly") {
     return (
-      <dl className="readonly-grid">
-        <div className="readonly-field">
-          <dt>Placing</dt>
-          <dd>
-            {formatPlacing(
-              {
-                placingFrom: Number(fields.placingFrom),
-                placingTo: fields.placingTo ? Number(fields.placingTo) : null,
-                placingAssigned: fields.placingFrom.trim() !== "",
-              },
-              attendance
-            )}
-          </dd>
-        </div>
-        <div className="readonly-field">
-          <dt>Player name</dt>
-          <dd>{fields.playerName}</dd>
-        </div>
-        <div className="readonly-field">
-          <dt>Deck name</dt>
-          <dd>{fields.deckName}</dd>
-        </div>
-        <div className="readonly-field">
-          <dt>Decklist</dt>
-          <dd className="decklist-readonly">
-            <DecklistView raw={fields.decklistRaw} lists={lists} />
-          </dd>
-        </div>
-        <div className="readonly-field lg:col-start-1">
-          <DecklistChecks decklistRaw={fields.decklistRaw} lists={lists} />
-        </div>
-      </dl>
+      <ReadonlyEntry
+        placing={formatPlacing(
+          {
+            placingFrom: Number(fields.placingFrom),
+            placingTo: fields.placingTo ? Number(fields.placingTo) : null,
+            placingAssigned: fields.placingFrom.trim() !== "",
+          },
+          attendance
+        )}
+        playerName={fields.playerName}
+        deckName={fields.deckName}
+        decklistRaw={fields.decklistRaw}
+        lists={lists}
+      />
     );
   }
 

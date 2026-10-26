@@ -1,8 +1,6 @@
 "use client";
 
-import { formatPlacing } from "@/lib/placing";
 import type { DecklistWarning } from "@/lib/decklist/types";
-import type { Entry } from "@/lib/types";
 
 const WARNING_LABELS: Record<DecklistWarning["code"], string> = {
   points: "points",
@@ -16,60 +14,71 @@ function warningLabel(warnings: DecklistWarning[]): string {
   return [...new Set(warnings.map((warning) => WARNING_LABELS[warning.code]))].join(", ");
 }
 
+// what a row shows; the event page and the standalone checker each build these from their own lists
+export type EntryRow = {
+  id: string;
+  // the left column: a placing, or a position in the file
+  label: string;
+  playerName: string;
+  deckName: string;
+  published?: boolean;
+};
+
 export function EntriesList({
-  entries,
-  attendance,
-  selectedEntryId,
-  isNewEntryOpen,
-  locked,
+  rows,
+  selectedId,
+  isNewEntryOpen = false,
+  locked = false,
+  compact = false,
   onSelect,
   warningsByEntryId,
+  emptyText = "No entries yet.",
 }: {
-  entries: Entry[];
-  attendance: number;
-  selectedEntryId: string | null;
-  isNewEntryOpen: boolean;
-  locked: boolean;
+  rows: EntryRow[];
+  selectedId: string | null;
+  isNewEntryOpen?: boolean;
+  locked?: boolean;
+  // a narrow left column, for labels that are just a number
+  compact?: boolean;
   onSelect: (entryId: string) => void;
   warningsByEntryId: Map<string, DecklistWarning[]>;
+  emptyText?: string;
 }) {
   return (
-    <div className="entries-pane">
-      {entries.map((entry) => {
-        const isSelected = entry.id === selectedEntryId;
+    <div className="entries-pane" data-compact={compact}>
+      {rows.map((row) => {
+        const isSelected = row.id === selectedId;
         const isClickable = !locked || isSelected;
+        const warnings = warningsByEntryId.get(row.id);
         return (
           <div
-            key={entry.id}
+            key={row.id}
             className="entry-row"
             data-selected={isSelected}
-            data-published={entry.moxfieldDeckId !== null}
+            data-published={row.published === true}
             role="button"
             tabIndex={isClickable ? 0 : -1}
             aria-disabled={!isClickable}
             style={isClickable ? undefined : { cursor: "default", opacity: 0.6 }}
             onClick={() => {
               if (isClickable) {
-                onSelect(entry.id);
+                onSelect(row.id);
               }
             }}
           >
             <span>
-              {formatPlacing(entry, attendance)}
-              {entry.moxfieldDeckId !== null ? " ✓" : ""}
+              {row.label}
+              {row.published ? " ✓" : ""}
             </span>
             <span className="min-w-0">
-              <span className="block truncate">{entry.playerName}</span>
-              <span className="block truncate text-sm text-muted">{entry.deckName}</span>
-              {warningsByEntryId.get(entry.id)?.length ? (
+              <span className="block truncate">{row.playerName}</span>
+              <span className="block truncate text-sm text-muted">{row.deckName}</span>
+              {warnings?.length ? (
                 <span
                   className="block truncate text-sm text-warn"
-                  title={warningsByEntryId
-                    .get(entry.id)
-                    ?.map((warning) => warning.message)
-                    .join("\n")}
+                  title={warnings.map((warning) => warning.message).join("\n")}
                 >
-                  &#9888; {warningLabel(warningsByEntryId.get(entry.id) ?? [])}
+                  &#9888; {warningLabel(warnings)}
                 </span>
               ) : null}
             </span>
@@ -82,10 +91,10 @@ export function EntriesList({
           <span>(new entry)</span>
         </div>
       ) : null}
-      {entries.length === 0 && !isNewEntryOpen ? (
+      {rows.length === 0 && !isNewEntryOpen ? (
         <div className="entry-row" data-placeholder="true">
           <span></span>
-          <span>No entries yet.</span>
+          <span>{emptyText}</span>
         </div>
       ) : null}
     </div>

@@ -5,7 +5,6 @@ import { analyseDecklist } from "@/lib/decklist/analyse";
 import { buildAliasIndex, buildCardNameSet, buildPointsIndex, buildReservedIndex } from "@/lib/decklist/lists";
 import { checkDecklist } from "@/lib/decklist/rules";
 import type { AliasList, CheckLists, DecklistWarning, PointsList } from "@/lib/decklist/types";
-import type { Entry } from "@/lib/types";
 import { useCardNames } from "./useCardNames";
 import { usePointsList } from "./usePointsList";
 
@@ -18,7 +17,7 @@ export function useDecklistChecks({
   aliasList,
   companionNames,
 }: {
-  entries: Entry[];
+  entries: { id: string; decklistRaw: string }[];
   // null until the points list has been loaded
   pointsList: PointsList | null;
   reservedNames: string[] | null;
