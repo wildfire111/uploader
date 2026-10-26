@@ -98,7 +98,7 @@ export function DecklistEditor({
       <div className="decklist-backdrop" ref={backdropRef} aria-hidden>
         <DecklistView raw={value} lists={lists} typing={typing} />
       </div>
-      <textarea {...textareaProps} ref={textareaRef} value={value} onScroll={syncScroll} />
+      <textarea {...textareaProps} spellCheck={false} ref={textareaRef} value={value} onScroll={syncScroll} />
     </div>
   );
 }
