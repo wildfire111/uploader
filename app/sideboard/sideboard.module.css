@@ -1,15 +1,24 @@
-/* a light page of its own: it does not use the site's dark theme. These rules are not in a layer,
-   so they win over the base styles for buttons, inputs and tables in globals.css */
+/* the site's parchment and card-frame look, in both themes. These rules are not in a layer, so they
+   win over the base styles for buttons, inputs and tables in globals.css */
 
 .page {
-  /* the site sets a dark colour scheme, which would darken native controls and scrollbars */
-  color-scheme: light;
   /* the header's height, which Grid sets from the longest label; the guide lines are as long as it is tall */
   --head: 190px;
-  background: #f4f4f0;
-  color: #111;
+  /* the crosshair under the pointer: a warm amber, apart from the cyan of the sideboard columns */
+  --hover: color-mix(in srgb, #e7a43c 38%, var(--color-panel));
+  /* the sideboard columns, opaque so the sloping band in the header hides what it covers */
+  --side: color-mix(in srgb, var(--color-brand) 13%, var(--color-panel));
+  --stripe: color-mix(in srgb, var(--color-raised) 70%, var(--color-panel));
+  background: var(--color-page);
+  color: var(--color-ink);
   min-height: calc(100vh - var(--site-header-height));
-  padding: 16px 24px 48px;
+  padding: 14px 24px 48px;
+}
+
+.title {
+  margin: 0 12px 0 0;
+  font-size: 1.6rem;
+  line-height: 1.2;
 }
 
 .page * {
@@ -26,19 +35,19 @@
 
 .input,
 .textarea {
-  background: #fff;
-  color: #111;
-  border: 1px solid #888;
-  border-radius: 6px;
+  background: var(--color-panel);
+  color: var(--color-ink);
+  border: 1px solid var(--color-line);
+  border-radius: 4px;
   padding: 6px 10px;
   font: inherit;
 }
 
 .input:focus,
 .textarea:focus {
-  border-color: #2563eb;
-  outline: 2px solid #93b4f5;
-  box-shadow: none;
+  border-color: var(--color-brand);
+  outline: none;
+  box-shadow: 0 0 0 1px var(--color-brand);
 }
 
 .textarea {
@@ -47,30 +56,35 @@
   resize: vertical;
   font-family: ui-monospace, monospace;
   font-size: 0.9rem;
+  scrollbar-color: var(--color-line) transparent;
 }
 
 .btn {
-  background: #fff;
-  color: #111;
-  border: 1px solid #888;
-  border-radius: 6px;
-  padding: 6px 12px;
+  background: var(--color-raised);
+  color: var(--color-ink);
+  border: 1px solid var(--color-rule);
+  border-radius: 4px;
+  padding: 6px 14px;
   font: inherit;
   cursor: pointer;
 }
 
 .btn:hover {
-  background: #e6e6e0;
+  background: var(--color-title);
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 .btnPrimary {
-  background: #1d4ed8;
-  border-color: #1d4ed8;
-  color: #fff;
+  background: var(--color-brand);
+  color: var(--color-on-brand);
 }
 
 .btnPrimary:hover {
-  background: #1e40af;
+  background: var(--color-brand-hover);
 }
 
 .sizeLabel {
@@ -86,7 +100,7 @@
   padding: 0;
   border: 0;
   background: none;
-  accent-color: #1d4ed8;
+  accent-color: var(--color-brand);
 }
 
 .deck {
@@ -103,8 +117,9 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  background: #fff;
-  border: 1px solid #888;
+  background: var(--color-panel);
+  color: var(--color-ink);
+  border: 2px solid var(--color-rule);
   border-radius: 6px;
   padding: 8px 12px;
   margin-bottom: 12px;
@@ -119,7 +134,7 @@
   transform: translate(-50%, -50%);
   max-width: min(90vw, 640px);
   margin: 0;
-  box-shadow: 0 4px 14px #0003;
+  box-shadow: 0 6px 18px rgb(11 8 5 / 0.3);
 }
 
 /* the ones with a button or a link to copy sit at the foot of the window instead, out of the header */
@@ -136,12 +151,12 @@
 }
 
 .error {
-  border-color: #b91c1c;
-  color: #b91c1c;
+  border-color: var(--color-danger);
+  color: var(--color-danger);
 }
 
 .empty {
-  color: #555;
+  color: var(--color-muted);
   margin: 24px 0;
 }
 
@@ -162,16 +177,22 @@
   padding: 0;
   background: transparent;
   border: 0;
-  accent-color: #1d4ed8;
+  accent-color: var(--color-brand);
 }
 
 /* ---- the grid ---- */
 
+/* framed like a card: a heavy outer rule with a hairline just inside it */
 .scroller {
   overflow: auto;
   max-height: calc(100vh - var(--site-header-height) - 24px);
-  background: #fff;
-  border: 1px solid #999;
+  background: var(--color-panel);
+  border: 2px solid var(--color-rule);
+  border-radius: 8px;
+  box-shadow:
+    inset 0 0 0 3px var(--color-panel),
+    inset 0 0 0 4px var(--color-line);
+  scrollbar-color: var(--color-line) transparent;
 }
 
 .grid {
@@ -188,7 +209,7 @@
   border: 0;
   text-align: center;
   white-space: nowrap;
-  color: #111;
+  color: var(--color-ink);
 }
 
 .grid th {
@@ -201,7 +222,7 @@
   position: sticky;
   top: 0;
   z-index: 3;
-  background: #fff;
+  background: var(--color-panel);
 }
 
 .headRow th {
@@ -220,11 +241,11 @@
   width: var(--size);
   min-width: var(--size);
   max-width: var(--size);
-  border-left: 1px solid #c4c4bc;
+  border-left: 1px solid var(--color-line);
 }
 
 .side {
-  background-image: linear-gradient(#2563eb1f, #2563eb1f);
+  background-image: linear-gradient(var(--side), var(--side));
 }
 
 /* in the header the sideboard tint is a band that slopes with the labels, between the guide lines on
@@ -240,11 +261,11 @@
   bottom: 0;
   width: 100%;
   height: var(--base);
-  background: #e4ecfd;
+  background: var(--side);
 }
 
 .tintHover {
-  background: #fcd4aa;
+  background: var(--hover);
 }
 
 .tint::before {
@@ -263,20 +284,20 @@
   width: 10px;
   min-width: 10px;
   padding: 0;
-  background: #111 !important;
+  background: var(--color-rule) !important;
   background-image: none !important;
 }
 
 .row {
-  --rowbg: #fff;
+  --rowbg: var(--color-panel);
 }
 
 .row:nth-child(even) {
-  --rowbg: #e9e8e0;
+  --rowbg: var(--stripe);
 }
 
 .row:hover {
-  --rowbg: #fcd4aa;
+  --rowbg: var(--hover);
 }
 
 .row:hover td.side {
@@ -285,19 +306,19 @@
 
 .row td.col,
 .row td:last-child {
-  border-left: 1px solid #00000020;
+  border-left: 1px solid color-mix(in srgb, var(--color-line) 55%, transparent);
 }
 
-/* a sideboard column is tinted blue, so its hover drops the tint to stay green */
+/* a sideboard column is tinted, so its hover drops the tint to show the hover colour */
 .row td.colHover {
-  background-color: #fcd4aa;
+  background-color: var(--hover);
   background-image: none;
 }
 
 .row td {
   background-color: var(--rowbg);
   height: max(34px, calc(var(--size) * 0.85));
-  border-top: 1px solid #c4c4bc;
+  border-top: 1px solid var(--color-line);
 }
 
 .stickyA {
@@ -307,12 +328,12 @@
   /* as narrow as the longest name: in a table, a width of 1px with no wrapping shrinks to the content */
   width: 1px;
   text-align: left !important;
-  border-right: 2px solid #111;
+  border-right: 2px solid var(--color-rule);
 }
 
 .headRow th.stickyA {
   z-index: 5;
-  background: #fff;
+  background: var(--color-panel);
   vertical-align: bottom;
   padding: 0 10px 8px;
   font-size: 1rem;
@@ -337,7 +358,7 @@
 
 .handle {
   cursor: grab;
-  color: #555;
+  color: var(--color-muted);
   font-size: 1.1rem;
   user-select: none;
   padding: 0 2px;
@@ -353,6 +374,7 @@
 .matchupName {
   grid-area: 1 / 1;
   font: inherit;
+  font-family: var(--font-display);
   font-weight: 700;
   font-size: 1.05rem;
   padding: 4px 6px;
@@ -370,18 +392,27 @@
   min-width: 0;
   background: transparent;
   border-radius: 4px;
-  color: #111;
+  color: var(--color-ink);
+}
+
+.matchupName::placeholder {
+  color: var(--color-muted);
 }
 
 .matchupName:hover,
 .matchupName:focus {
-  background: #fff;
-  border-color: #888;
+  background: var(--color-panel);
+  border-color: var(--color-line);
   outline: none;
   box-shadow: none;
 }
 
+.matchupName:focus {
+  border-color: var(--color-brand);
+}
+
 .matchupLabel {
+  font-family: var(--font-display);
   font-size: 1.05rem;
   padding: 4px 6px;
 }
@@ -394,13 +425,13 @@
   background: transparent;
   border: 1px solid transparent;
   border-radius: 4px;
-  color: #555;
+  color: var(--color-muted);
   cursor: pointer;
 }
 
 .iconBtn:hover {
-  background: #d9d9d0;
-  color: #111;
+  background: var(--color-title);
+  color: var(--color-ink);
 }
 
 .count {
@@ -411,11 +442,12 @@
   text-align: center;
   font-weight: 700;
   font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .unbalanced {
-  background: #fecaca;
-  color: #7f1d1d;
+  background: color-mix(in srgb, var(--color-danger) 16%, var(--color-panel));
+  color: var(--color-danger);
 }
 
 /* sits under the last row, and stays in view at the bottom and left of the grid when there are many */
@@ -448,16 +480,17 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-family: var(--font-display);
   font-size: clamp(12px, calc(var(--size) * 0.36), 19px);
-  font-weight: 600;
+  font-weight: 700;
   line-height: 1.25;
   padding: 0 4px;
   cursor: grab;
-  color: #111;
+  color: var(--color-ink);
 }
 
 .label:hover {
-  background: #dbe7ff;
+  background: color-mix(in srgb, var(--color-brand) 22%, var(--color-panel));
 }
 
 /* appears only while a maindeck column is being dragged, so it takes no room in the grid */
@@ -468,17 +501,19 @@
   bottom: 28px;
   transform: translateX(-50%);
   padding: 22px 56px;
-  border: 3px dashed #b91c1c;
+  border: 3px dashed var(--color-danger);
   border-radius: 10px;
-  background: #fee2e2;
-  color: #7f1d1d;
+  background: color-mix(in srgb, var(--color-danger) 14%, var(--color-panel));
+  color: var(--color-danger);
+  font-family: var(--font-display);
   font-size: 1.1rem;
   font-weight: 700;
+  box-shadow: 0 8px 22px rgb(11 8 5 / 0.3);
 }
 
 .hideZoneOver {
   border-style: solid;
-  background: #fca5a5;
+  background: color-mix(in srgb, var(--color-danger) 30%, var(--color-panel));
 }
 
 /* a column's left edge: a line up the header that turns to run at 45 degrees, as the labels do,
@@ -493,7 +528,7 @@
   position: absolute;
   z-index: 1;
   left: 0;
-  background: #9a9a90;
+  background: var(--color-line);
 }
 
 .edge::before {
@@ -511,11 +546,11 @@
 }
 
 .dropHere {
-  box-shadow: inset 4px 0 0 #1d4ed8;
+  box-shadow: inset 4px 0 0 var(--color-brand);
 }
 
 .dropRow td {
-  box-shadow: inset 0 4px 0 #1d4ed8;
+  box-shadow: inset 0 4px 0 var(--color-brand);
 }
 
 /* a grid centres the box in both views; in print it is a div, where an auto margin wouldn't centre it
@@ -534,7 +569,12 @@
 }
 
 .cell:hover {
-  background: #2563eb22;
+  background: color-mix(in srgb, var(--color-brand) 16%, transparent);
+}
+
+.cell:focus-visible {
+  outline: 2px solid var(--color-brand-hover);
+  outline-offset: -3px;
 }
 
 .box {
@@ -545,9 +585,9 @@
   min-width: 18px;
   min-height: 18px;
   margin: auto;
-  border: 2px solid #555;
+  border: 2px solid var(--color-muted);
   border-radius: 4px;
-  background: #fff;
+  background: var(--color-panel);
   color: transparent;
   font-size: calc(var(--size) * 0.42);
   font-weight: 800;
@@ -555,27 +595,42 @@
 }
 
 .in .box {
-  background: #111;
-  border-color: #111;
-  color: #fff;
+  background: var(--color-ink);
+  border-color: var(--color-ink);
+  color: var(--color-panel);
 }
 
 .maybe .box {
-  background: #f59e0b;
-  border-color: #92400e;
-  color: #111;
+  background: #e7a43c;
+  border-color: #8a4f0c;
+  color: #231a10;
 }
 
 /* ---- print view and paper ---- */
 
 /* the printable area of A4 landscape with 10mm margins (277mm by 190mm), a hair under so it can't
-   spill onto a second page */
+   spill onto a second page. It is plain white paper with black ink in either theme, so it prints
+   without a wash of colour */
 .paper {
+  color-scheme: light;
+  --color-panel: #fff;
+  --color-raised: #f1ede3;
+  --color-line: #b9b2a2;
+  --color-rule: #111;
+  --color-ink: #111;
+  --color-muted: #555;
+  --color-brand: #0b6f8f;
+  --color-danger: #a3261a;
+  --side: #e6f0f3;
+  --stripe: #f3f1ec;
+  --hover: #f3f1ec;
   width: 1046px;
   height: 716px;
   overflow: hidden;
   background: #fff;
-  border: 1px solid #999;
+  color: #111;
+  border: 2px solid var(--color-rule);
+  box-shadow: 0 10px 28px rgb(11 8 5 / 0.3);
   margin: 0 auto;
 }
 
@@ -590,6 +645,8 @@
   max-height: none;
   overflow: visible;
   border: 0;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .printView .grid thead {
@@ -643,6 +700,7 @@
 
   .paper {
     border: 0;
+    box-shadow: none;
     margin: 0;
   }
 
@@ -653,9 +711,12 @@
 }
 
 .dialog {
-  border: 1px solid #888;
+  background: var(--color-panel);
+  color: var(--color-ink);
+  border: 2px solid var(--color-rule);
   border-radius: 8px;
-  padding: 16px;
+  box-shadow: 0 16px 40px rgb(11 8 5 / 0.35);
+  padding: 18px;
   width: min(420px, 92vw);
   max-height: 80vh;
   /* the site's reset removes the margin that centres a modal dialog */
@@ -677,12 +738,12 @@
 }
 
 .savesNote {
-  color: #555;
+  color: var(--color-muted);
   font-size: 0.9rem;
 }
 
 .dialog::backdrop {
-  background: rgba(0, 0, 0, 0.4);
+  background: rgb(35 26 16 / 0.55);
 }
 
 .dialogHead {
@@ -694,6 +755,8 @@
 
 .dialogHead strong {
   flex: 1;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
 }
 
 .hiddenList {
@@ -702,6 +765,7 @@
   padding: 0;
   overflow-y: auto;
   max-height: calc(80vh - 90px);
+  scrollbar-color: var(--color-line) transparent;
 }
 
 .hiddenList li {
@@ -710,5 +774,5 @@
   justify-content: space-between;
   gap: 12px;
   padding: 4px 0;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--color-raised);
 }

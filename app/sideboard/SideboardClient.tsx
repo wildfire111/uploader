@@ -442,6 +442,7 @@ export function SideboardClient({ landNames: landNameList }: { landNames: string
       ) : null}
 
       <div className={styles.toolbar}>
+        <h1 className={styles.title}>Sideboard guide</h1>
         <button
           type="button"
           className={styles.btn}
