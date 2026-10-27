@@ -1,4 +1,4 @@
-import { MAX_SIZE, MIN_SIZE, setDecklist, type Cell, type Matchup, type Plan } from "./plan";
+import { MAX_SIZE, MIN_SIZE, NOTE_MAX, setDecklist, type Cell, type Matchup, type Plan } from "./plan";
 
 export type PlanResult = { ok: true; plan: Plan } | { ok: false; error: string };
 
@@ -27,7 +27,8 @@ function readMatchup(value: unknown): Matchup | null {
     }
     cells[id] = cell;
   }
-  return { id: value.id, label: value.label, cells };
+  const note = typeof value.note === "string" ? value.note.trim().slice(0, NOTE_MAX) : "";
+  return note === "" ? { id: value.id, label: value.label, cells } : { id: value.id, label: value.label, cells, note };
 }
 
 // checks a plan from outside (a file, a link or the browser's storage); the columns are rebuilt from

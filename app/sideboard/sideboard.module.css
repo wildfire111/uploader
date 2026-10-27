@@ -606,6 +606,121 @@
   color: #231a10;
 }
 
+/* ---- notes ---- */
+
+.noteHead {
+  display: block;
+  padding: 0 6px 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-muted);
+  text-align: left;
+}
+
+.noteCell {
+  width: 170px;
+  min-width: 170px;
+  max-width: 170px;
+  padding: 3px 5px;
+  vertical-align: middle;
+}
+
+/* the same size however much is written: a long note is clamped on screen and scrolls when it is edited */
+.noteBox {
+  box-sizing: border-box;
+  display: block;
+  width: 160px;
+  height: calc(max(34px, calc(var(--size) * 0.85)) - 8px);
+  margin: 0;
+  padding: 2px 5px;
+  overflow: hidden;
+  font: inherit;
+  font-size: 11px;
+  line-height: 1.15;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--color-ink);
+  background: var(--color-panel);
+  border: 1px solid var(--color-line);
+  border-radius: 4px;
+}
+
+.notePreview {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  cursor: text;
+}
+
+.notePreview:focus-visible,
+.noteInput:focus {
+  outline: none;
+  border-color: var(--color-brand);
+}
+
+.noteInput {
+  resize: none;
+  overflow: auto;
+}
+
+.noteAdd {
+  padding: 1px 6px;
+  font: inherit;
+  font-size: 11px;
+  color: var(--color-muted);
+  background: transparent;
+  border: 1px dashed var(--color-line);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.noteAdd:hover,
+.noteAdd:focus-visible {
+  color: var(--color-ink);
+  border-color: var(--color-brand);
+}
+
+.notePrint {
+  cursor: default;
+  background: transparent;
+}
+
+/* the full note, over the grid, on hover and on keyboard focus */
+.noteTip {
+  position: relative;
+}
+
+.noteTip::after {
+  content: attr(data-note);
+  position: absolute;
+  z-index: 20;
+  right: 0;
+  bottom: calc(100% + 4px);
+  width: max-content;
+  max-width: 280px;
+  padding: 6px 8px;
+  font-size: 0.8rem;
+  line-height: 1.3;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--color-ink);
+  background: var(--color-raised);
+  border: 1px solid var(--color-rule);
+  border-radius: 4px;
+  box-shadow: 0 4px 14px rgb(11 8 5 / 0.3);
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+}
+
+.noteTip:hover::after,
+.noteTip:focus-within::after {
+  opacity: 1;
+  visibility: visible;
+}
+
 /* ---- print view and paper ---- */
 
 /* the printable area of A4 landscape with 10mm margins (277mm by 190mm), a hair under so it can't
@@ -696,6 +811,10 @@
 
   .noPrint {
     display: none !important;
+  }
+
+  .noteTip::after {
+    display: none;
   }
 
   .paper {

@@ -10,6 +10,8 @@ import {
   removeMatchup,
   renameMatchup,
   setDecklist,
+  setNote,
+  NOTE_MAX,
   isBasicLand,
   setSize,
   showAllColumns,
@@ -357,5 +359,24 @@ describe("showColumn", () => {
     expect(showColumn(plan, "main:Flash#0").hidden).toEqual([
       "main:Black Lotus#0",
     ]);
+  });
+});
+
+describe("setNote", () => {
+  it("sets a trimmed note", () => {
+    const plan = addMatchup(createPlan(), "Cradle");
+    expect(setNote(plan, plan.matchups[0].id, "  board in Bolt ").matchups[0].note).toBe("board in Bolt");
+  });
+
+  it("clears the note when it is emptied", () => {
+    let plan = addMatchup(createPlan(), "Cradle");
+    plan = setNote(plan, plan.matchups[0].id, "x");
+    plan = setNote(plan, plan.matchups[0].id, "  ");
+    expect(Object.keys(plan.matchups[0]).sort()).toEqual(["cells", "id", "label"]);
+  });
+
+  it("cuts a note to the cap", () => {
+    const plan = addMatchup(createPlan(), "Cradle");
+    expect(setNote(plan, plan.matchups[0].id, "a".repeat(NOTE_MAX + 50)).matchups[0].note).toHaveLength(NOTE_MAX);
   });
 });

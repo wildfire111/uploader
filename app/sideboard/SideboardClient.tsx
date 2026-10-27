@@ -82,6 +82,8 @@ export function SideboardClient({ landNames: landNameList }: { landNames: string
   const [loaded, setLoaded] = useState(false);
   const [view, setView] = useState<View>("edit");
   const [fit, setFit] = useState(true);
+  // the print view leaves the notes out; not kept, so each print starts with them shown
+  const [hideNotes, setHideNotes] = useState(false);
   const [draft, setDraft] = useState("");
   const [focusId, setFocusId] = useState<string | null>(null);
   const [message, setMessage] = useState<Message>(null);
@@ -379,6 +381,18 @@ export function SideboardClient({ landNames: landNameList }: { landNames: string
               Use the column size
             </label>
           </div>
+          {plan.matchups.some((matchup) => matchup.note) ? (
+            <div className={styles.radios}>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={hideNotes}
+                  onChange={(event) => setHideNotes(event.target.checked)}
+                />
+                Hide notes
+              </label>
+            </div>
+          ) : null}
           <button
             type="button"
             className={`${styles.btn} ${styles.btnPrimary}`}
@@ -392,6 +406,7 @@ export function SideboardClient({ landNames: landNameList }: { landNames: string
             <Grid
               plan={plan}
               printView
+              hideNotes={hideNotes}
               onPlan={setPlan}
               onDelete={onDelete}
               onAdd={addRow}
