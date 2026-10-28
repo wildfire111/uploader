@@ -9,6 +9,8 @@ const PRINT_START = 12;
 const PRINT_FLOOR = (5 * 96) / 72;
 const PRINT_STEP = 0.5;
 const PRINT_LINE = 1.15;
+// the box's padding top and bottom, which the text doesn't get
+const PRINT_PAD = 4;
 
 type Props = {
   note: string | undefined;
@@ -72,7 +74,7 @@ export function NoteEditor({ note, label, onNote }: Props) {
 }
 
 // the notes cell on paper: the text is made smaller until it fits the box, so the row stays its height.
-// Below the floor what doesn't fit is cut with an ellipsis.
+// A note that doesn't fit even at the floor is marked, and growNotes may give its row more height.
 export function PrintNote({ note }: { note: string }) {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -82,8 +84,10 @@ export function PrintNote({ note }: { note: string }) {
       return;
     }
     const fit = () => {
+      box.style.removeProperty("--grow");
       box.style.webkitLineClamp = "";
       box.style.display = "";
+      delete box.dataset.floor;
       let size = PRINT_START;
       box.style.fontSize = `${size}px`;
       while (size - PRINT_STEP >= PRINT_FLOOR && box.scrollHeight > box.clientHeight) {
@@ -91,13 +95,15 @@ export function PrintNote({ note }: { note: string }) {
         box.style.fontSize = `${size}px`;
       }
       if (box.scrollHeight > box.clientHeight) {
-        box.style.display = "-webkit-box";
-        box.style.webkitLineClamp = String(Math.max(1, Math.floor(box.clientHeight / (size * PRINT_LINE))));
+        box.dataset.floor = String(size);
       }
     };
     fit();
-    // measured again once the page's font is in
-    void document.fonts?.ready.then(fit);
+    // measured again once the page's font is in, and the page is told so it can share out height again
+    void document.fonts?.ready.then(() => {
+      fit();
+      box.dispatchEvent(new Event(NOTES_FITTED, { bubbles: true }));
+    });
   }, [note]);
 
   return (
@@ -107,4 +113,40 @@ export function PrintNote({ note }: { note: string }) {
       </div>
     </div>
   );
+}
+
+// sent up from a print note when it has been sized again after the fact
+export const NOTES_FITTED = "notesfitted";
+
+// Notes that are still too long at the smallest size get taller rows, up to `spare` px in all. The
+// height goes a pixel at a time to the note with the most cut off, so the worst fitting ones are
+// helped first. A note that gets less than it needs is cut off with an ellipsis.
+export function growNotes(root: HTMLElement, spare: number) {
+  const items = [...root.querySelectorAll<HTMLElement>("[data-floor]")].map((box) => {
+    box.style.removeProperty("--grow");
+    box.style.webkitLineClamp = "";
+    box.style.display = "";
+    const base = box.clientHeight;
+    return { box, base, need: Math.max(0, box.scrollHeight - base), grow: 0, size: Number(box.dataset.floor) };
+  });
+  for (let left = spare; left > 0; left--) {
+    let worst: (typeof items)[number] | null = null;
+    for (const item of items) {
+      if (item.need > item.grow && (!worst || item.need - item.grow > worst.need - worst.grow)) {
+        worst = item;
+      }
+    }
+    if (!worst) {
+      break;
+    }
+    worst.grow++;
+  }
+  for (const { box, base, need, grow, size } of items) {
+    box.style.setProperty("--grow", `${grow}px`);
+    if (grow < need) {
+      const lines = Math.floor((base + grow - PRINT_PAD) / (size * PRINT_LINE));
+      box.style.display = "-webkit-box";
+      box.style.webkitLineClamp = String(Math.max(1, lines));
+    }
+  }
 }
