@@ -13,6 +13,7 @@ import { flushSync } from "react-dom";
 import { shortenShareLinkAction } from "@/lib/actions/shareLink";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { Grid } from "./Grid";
+import { NOTES_FITTED, growNotes } from "./Note";
 import { HiddenDialog } from "./HiddenDialog";
 import {
   addMatchup,
@@ -82,6 +83,8 @@ export function SideboardClient({ landNames: landNameList }: { landNames: string
   const [loaded, setLoaded] = useState(false);
   const [view, setView] = useState<View>("edit");
   const [fit, setFit] = useState(true);
+  // the print view leaves the notes out; not kept, so each print starts with them shown
+  const [hideNotes, setHideNotes] = useState(false);
   const [draft, setDraft] = useState("");
   const [focusId, setFocusId] = useState<string | null>(null);
   const [message, setMessage] = useState<Message>(null);
@@ -160,6 +163,14 @@ export function SideboardClient({ landNames: landNameList }: { landNames: string
     if (!inner) {
       return;
     }
+    // notes that don't fit at the smallest size take the page's spare height, if there is any: the
+    // height the page would still have at the scale it is fitted to by its width
+    growNotes(inner, 0);
+    const widthScale = fit ? Math.min(MAX_FIT_SCALE, PAPER_WIDTH / inner.offsetWidth) : 1;
+    const spare = Math.floor(PAPER_HEIGHT / widthScale - inner.offsetHeight) - 1;
+    if (spare > 0) {
+      growNotes(inner, spare);
+    }
     const scale = fit
       ? Math.min(
           MAX_FIT_SCALE,
@@ -174,6 +185,13 @@ export function SideboardClient({ landNames: landNameList }: { landNames: string
     if (view === "print") {
       fitToPage();
     }
+  });
+
+  // a note sized again after the font came in changes how much height it needs
+  useEffect(() => {
+    const inner = paperRef.current;
+    inner?.addEventListener(NOTES_FITTED, fitToPage);
+    return () => inner?.removeEventListener(NOTES_FITTED, fitToPage);
   });
 
   // printing always gives the print view, whichever way printing was started
@@ -379,6 +397,18 @@ export function SideboardClient({ landNames: landNameList }: { landNames: string
               Use the column size
             </label>
           </div>
+          {plan.matchups.some((matchup) => matchup.note) ? (
+            <div className={styles.radios}>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={hideNotes}
+                  onChange={(event) => setHideNotes(event.target.checked)}
+                />
+                Hide notes
+              </label>
+            </div>
+          ) : null}
           <button
             type="button"
             className={`${styles.btn} ${styles.btnPrimary}`}
@@ -392,6 +422,7 @@ export function SideboardClient({ landNames: landNameList }: { landNames: string
             <Grid
               plan={plan}
               printView
+              hideNotes={hideNotes}
               onPlan={setPlan}
               onDelete={onDelete}
               onAdd={addRow}

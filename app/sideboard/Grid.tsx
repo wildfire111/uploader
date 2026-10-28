@@ -5,7 +5,8 @@ import { ConfirmDialog } from "./ConfirmDialog";
 import { countMatchup, printColumns } from "./counts";
 import type { Column } from "./deck";
 import { noAutofill } from "./noAutofill";
-import { cycleCell, hideColumn, moveColumn, moveMatchup, renameMatchup, type Matchup, type Plan } from "./plan";
+import { NoteEditor, PrintNote } from "./Note";
+import { cycleCell, hideColumn, moveColumn, moveMatchup, renameMatchup, setNote, type Matchup, type Plan } from "./plan";
 import styles from "./sideboard.module.css";
 
 type Drag = { kind: "col" | "row"; id: string } | null;
@@ -22,6 +23,8 @@ type Props = {
   plan: Plan;
   // the print view is the grid as it goes on paper: nothing to edit, and only the columns that are used
   printView: boolean;
+  // the print view leaves the notes out when asked to
+  hideNotes?: boolean;
   onPlan: (change: (plan: Plan) => Plan) => void;
   onDelete: (matchup: Matchup, index: number) => void;
   onAdd: () => void;
@@ -30,7 +33,7 @@ type Props = {
   onFocused: () => void;
 };
 
-export function Grid({ plan, printView, onPlan, onDelete, onAdd, focusId, onFocused }: Props) {
+export function Grid({ plan, printView, hideNotes = false, onPlan, onDelete, onAdd, focusId, onFocused }: Props) {
   const [drag, setDrag] = useState<Drag>(null);
   const [over, setOver] = useState<string | null>(null);
   // the column under the pointer, whether on one of its cells or on its slanted name
@@ -50,6 +53,8 @@ export function Grid({ plan, printView, onPlan, onDelete, onAdd, focusId, onFocu
   const shown = printView ? printColumns(plan) : plan.columns.filter((column) => !hidden.has(column.id));
   const side = shown.filter((column) => column.board === "side");
   const main = shown.filter((column) => column.board === "main");
+  // on paper the notes have a column only when there are some to show; otherwise the tail stays empty
+  const paperNotes = printView && !hideNotes && plan.matchups.some((matchup) => matchup.note);
   const boardOf = new Map(plan.columns.map((column) => [column.id, column.board]));
 
   // the header is as tall as the longest label needs: a label is a box turned 45 degrees, so its
@@ -198,7 +203,9 @@ export function Grid({ plan, printView, onPlan, onDelete, onAdd, focusId, onFocu
             {side.map(header)}
             {side.length > 0 && main.length > 0 ? <th className={`${styles.divider} ${styles.edge}`} /> : null}
             {main.map(header)}
-            <th className={`${styles.tail} ${styles.edge}`} />
+            <th className={`${styles.tail} ${styles.edge}`}>
+              {!printView || paperNotes ? <span className={styles.noteHead}>Notes</span> : null}
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -301,7 +308,17 @@ export function Grid({ plan, printView, onPlan, onDelete, onAdd, focusId, onFocu
                 {side.map((column) => cell(matchup, column))}
                 {side.length > 0 && main.length > 0 ? <td className={styles.divider} /> : null}
                 {main.map((column) => cell(matchup, column))}
-                <td />
+                <td className={styles.noteCell}>
+                  {printView ? (
+                    paperNotes && matchup.note ? <PrintNote note={matchup.note} /> : null
+                  ) : (
+                    <NoteEditor
+                      note={matchup.note}
+                      label={matchup.label}
+                      onNote={(note) => onPlan((current) => setNote(current, matchup.id, note))}
+                    />
+                  )}
+                </td>
               </tr>
             );
           })}

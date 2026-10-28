@@ -6,6 +6,8 @@ import {
   hideColumn,
   moveColumn,
   setDecklist,
+  setNote,
+  NOTE_MAX,
   setSize,
   type Plan,
 } from "./plan";
@@ -56,12 +58,6 @@ describe("planToJson and parsePlan", () => {
     expect(result.ok && result.plan).toEqual(createPlan());
   });
 
-  it("loads a plan saved with matchup notes, without the notes", () => {
-    const saved = JSON.stringify({ ...createPlan(), matchups: [{ id: "a", label: "A", note: "on the play", cells: {} }] });
-    const result = parsePlan(saved);
-    expect(result.ok && result.plan.matchups[0]).toEqual({ id: "a", label: "A", cells: {} });
-  });
-
   it("keeps the size within what the grid can show", () => {
     const result = parsePlan(JSON.stringify({ ...createPlan(), size: 9999 }));
     expect(result).toMatchObject({ ok: true, plan: { size: 96 } });
@@ -90,5 +86,29 @@ describe("encodeShare and decodeShare", () => {
   it.each(["", "!!!", "AAAA", "eyJ2IjoxfQ"])("rejects a link that isn't a plan: %j", async (text) => {
     const result = await decodeShare(text);
     expect(result.ok).toBe(false);
+  });
+});
+
+describe("notes", () => {
+  it("round-trips a note", async () => {
+    const base = samplePlan();
+    const plan = setNote(base, base.matchups[0].id, "side in Bolt");
+    expect(parsePlan(planToJson(plan))).toEqual({ ok: true, plan });
+    expect(await decodeShare(await encodeShare(plan))).toEqual({ ok: true, plan });
+  });
+
+  it("loads a plan saved before notes existed", () => {
+    const result = parsePlan(planToJson(samplePlan()));
+    expect(result.ok && result.plan.matchups.every((matchup) => !("note" in matchup))).toBe(true);
+  });
+
+  it("trims an over-long or blank note from outside", () => {
+    const plan = samplePlan();
+    const raw = JSON.parse(planToJson(plan));
+    raw.matchups[0].note = "a".repeat(NOTE_MAX + 10);
+    raw.matchups[1].note = "   ";
+    const result = parsePlan(JSON.stringify(raw));
+    expect(result.ok && result.plan.matchups[0].note).toHaveLength(NOTE_MAX);
+    expect(result.ok && "note" in result.plan.matchups[1]).toBe(false);
   });
 });

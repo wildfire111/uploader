@@ -8,6 +8,8 @@ export type Matchup = {
   label: string;
   // by column id; an empty cell is absent
   cells: Record<string, Cell>;
+  // a short free-text note; absent when there isn't one
+  note?: string;
 };
 
 export type Plan = {
@@ -25,6 +27,7 @@ export type Plan = {
 export const MIN_SIZE = 24;
 export const MAX_SIZE = 96;
 export const DEFAULT_SIZE = 44;
+export const NOTE_MAX = 500;
 
 export function createPlan(): Plan {
   return {
@@ -167,6 +170,20 @@ export function renameMatchup(plan: Plan, id: string, label: string): Plan {
       : plan;
   }
   return updateMatchup(plan, id, (matchup) => ({ ...matchup, label: trimmed }));
+}
+
+// sets or clears (when empty) a matchup's note, which is cut to NOTE_MAX characters
+export function setNote(plan: Plan, id: string, note: string): Plan {
+  const kept = note.trim().slice(0, NOTE_MAX);
+  return updateMatchup(plan, id, (matchup) => {
+    const next = { ...matchup };
+    if (kept === "") {
+      delete next.note;
+    } else {
+      next.note = kept;
+    }
+    return next;
+  });
 }
 
 export function removeMatchup(plan: Plan, id: string): Plan {
